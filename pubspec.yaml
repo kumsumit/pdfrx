@@ -20,7 +20,8 @@ dependencies:
     git: https://github.com/kumsumit/path_provider.git
   rxdart: '>=0.27.0 <0.29.0'
   synchronized: ^3.1.0
-  url_launcher: ^6.3.0
+  url_launcher:
+    git: https://github.com/kumsumit/url_launcher.git
   vector_math: ^2.1.4
   web: '>=0.5.1 <1.1.0'
 
