@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 @JS()
-library pdf.js;
+library;
 
 import 'dart:js_interop';
 import 'dart:typed_data';

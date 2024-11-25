@@ -692,7 +692,7 @@ typedef PdfViewerPagePaintCallback = void Function(
 ///
 /// [selections] is the selected text ranges.
 typedef PdfViewerTextSelectionChangeCallback = void Function(
-     List<PdfTextRanges> selections);
+    List<PdfTextRanges> selections);
 
 /// When [PdfViewerController.goToPage] is called, the page is aligned to the specified anchor.
 ///

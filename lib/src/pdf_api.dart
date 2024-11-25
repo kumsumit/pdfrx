@@ -871,7 +871,8 @@ class PdfRect {
     }
   }
 
-  PdfRect inflate(double dx, double dy) => PdfRect(left - dx, top + dy, right + dx, bottom - dy);
+  PdfRect inflate(double dx, double dy) =>
+      PdfRect(left - dx, top + dy, right + dx, bottom - dy);
 
   @override
   bool operator ==(Object other) {
@@ -916,7 +917,8 @@ extension PdfRectsExt on Iterable<PdfRect> {
         bottom = r.bottom;
       }
     }
-    if (left == double.infinity) { // no rects
+    if (left == double.infinity) {
+      // no rects
       throw StateError('No rects');
     }
     return PdfRect(left, top, right, bottom);
