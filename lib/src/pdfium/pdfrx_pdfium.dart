@@ -17,6 +17,7 @@ import 'worker.dart';
 
 /// Get the module file name for pdfium.
 String _getModuleFileName() {
+  if (Pdfrx.pdfiumModulePath != null) return Pdfrx.pdfiumModulePath!;
   if (Platform.isAndroid) return 'libpdfium.so';
   if (Platform.isIOS || Platform.isMacOS) return 'pdfrx.framework/pdfrx';
   if (Platform.isWindows) return 'pdfium.dll';
@@ -522,6 +523,7 @@ class PdfPagePdfium extends PdfPage {
     double? fullWidth,
     double? fullHeight,
     Color? backgroundColor,
+    PdfPageRotation? rotationOverride,
     PdfAnnotationRenderingMode annotationRenderingMode =
         PdfAnnotationRenderingMode.annotationAndForms,
     PdfPageRenderCancellationToken? cancellationToken,
@@ -539,6 +541,7 @@ class PdfPagePdfium extends PdfPage {
     fullHeight ??= this.height;
     width ??= fullWidth.toInt();
     height ??= fullHeight.toInt();
+
     backgroundColor ??= Colors.white;
     const rgbaSize = 4;
     Pointer<Uint8> buffer = nullptr;
@@ -582,6 +585,9 @@ class PdfPagePdfium extends PdfPage {
                   params.height,
                   params.backgroundColor,
                 );
+                final rotate = rotationOverride == null
+                    ? 0
+                    : (rotationOverride.index - rotation.index + 4) & 3;
                 pdfium.FPDF_RenderPageBitmap(
                   bmp,
                   page,
@@ -589,7 +595,7 @@ class PdfPagePdfium extends PdfPage {
                   -params.y,
                   params.fullWidth,
                   params.fullHeight,
-                  0,
+                  rotate,
                   params.annotationRenderingMode !=
                           PdfAnnotationRenderingMode.none
                       ? pdfium_bindings.FPDF_ANNOT
@@ -608,7 +614,7 @@ class PdfPagePdfium extends PdfPage {
                     -params.y,
                     params.fullWidth,
                     params.fullHeight,
-                    0,
+                    rotate,
                     0,
                   );
                 }

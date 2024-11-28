@@ -14,6 +14,7 @@ class PdfViewerParams {
     this.margin = 8.0,
     this.backgroundColor = Colors.grey,
     this.layoutPages,
+    this.normalizeMatrix,
     this.maxScale = 8.0,
     this.minScale = 0.1,
     this.useAlternativeFitScaleAsMinScale = true,
@@ -61,6 +62,8 @@ class PdfViewerParams {
     this.pagePaintCallbacks,
     this.pageBackgroundPaintCallbacks,
     this.onTextSelectionChange,
+    this.selectableRegionInjector,
+    this.perPageSelectableRegionInjector,
     this.forceReload = false,
   });
 
@@ -99,6 +102,32 @@ class PdfViewerParams {
   /// ),
   /// ```
   final PdfPageLayoutFunction? layoutPages;
+
+  /// Function to normalize the matrix.
+  ///
+  /// The function is called when the matrix is changed and normally used to restrict the matrix to certain range.
+  ///
+  /// The following fragment is an example to restrict the matrix to the document size, which is almost identical to
+  /// the default behavior:
+  ///
+  /// ```dart
+  /// PdfViewerParams(
+  ///  normalizeMatrix: (matrix, viewSize, layout, controller) {
+  ///     // If the controller is not ready, just return the input matrix.
+  ///     if (controller == null || !controller.isReady) return matrix;
+  ///     final position = newValue.calcPosition(viewSize);
+  ///     final newZoom = controller.params.boundaryMargin != null
+  ///       ? newValue.zoom
+  ///       : max(newValue.zoom, controller.minScale);
+  ///     final hw = viewSize.width / 2 / newZoom;
+  ///     final hh = viewSize.height / 2 / newZoom;
+  ///     final x = position.dx.range(hw, layout.documentSize.width - hw);
+  ///     final y = position.dy.range(hh, layout.documentSize.height - hh);
+  ///     return controller.calcMatrixFor(Offset(x, y), zoom: newZoom, viewSize: viewSize);
+  ///   },
+  /// ),
+  /// ```
+  final PdfMatrixNormalizeFunction? normalizeMatrix;
 
   /// The maximum allowed scale.
   ///
@@ -153,9 +182,11 @@ class PdfViewerParams {
   /// The default is false.
   /// If it is true, the text selection is enabled by injecting [SelectionArea]
   /// internally.
-  /// You can manually wrap [PdfViewer] with [SelectionArea] or [SelectableRegion]
-  /// for more customization, but in such situation, [enableTextSelection] must
-  /// be false to avoid double [SelectionArea]/[SelectableRegion] injection.
+  ///
+  /// Basically, you can enable text selection by setting one (or more) of the following parameters:
+  /// - [enableTextSelection] to enable [SelectionArea] on the viewer
+  /// - [selectableRegionInjector] to inject your own [SelectableRegion] on the viewer
+  /// - [perPageSelectableRegionInjector] to inject your own [SelectableRegion] on each page
   final bool enableTextSelection;
 
   /// Color for text search match.
@@ -421,6 +452,32 @@ class PdfViewerParams {
   /// Function to be notified when the text selection is changed.
   final PdfViewerTextSelectionChangeCallback? onTextSelectionChange;
 
+  /// Function to inject [SelectionArea] or [SelectableRegion] to customize text selection.
+  ///
+  /// It can be also used to "remove" the text selection feature by returning the child widget as it is.
+  /// Furthermore, it can be used to customize the text selection feature by returning a custom widget.
+  ///
+  /// Basically, you can enable text selection by setting one (or more) of the following parameters:
+  /// - [enableTextSelection] to enable [SelectionArea] on the viewer
+  /// - [selectableRegionInjector] to inject your own [SelectableRegion] on the viewer
+  /// - [perPageSelectableRegionInjector] to inject your own [SelectableRegion] on each page
+  ///
+  /// You can even enable both of [selectableRegionInjector] and [perPageSelectableRegionInjector] at the same time.
+  final PdfSelectableRegionInjector? selectableRegionInjector;
+
+  /// Function to inject [SelectionArea] or [SelectableRegion] to customize text selection on each page.
+  ///
+  /// It can be also used to "remove" the text selection feature by returning the child widget as it is.
+  /// Furthermore, it can be used to customize the text selection feature by returning a custom widget.
+  ///
+  /// Basically, you can enable text selection by setting one (or more) of the following parameters:
+  /// - [enableTextSelection] to enable [SelectionArea] on the viewer
+  /// - [selectableRegionInjector] to inject your own [SelectableRegion] on the viewer
+  /// - [perPageSelectableRegionInjector] to inject your own [SelectableRegion] on each page
+  ///
+  /// You can even enable both of [selectableRegionInjector] and [perPageSelectableRegionInjector] at the same time.
+  final PdfPerPageSelectableRegionInjector? perPageSelectableRegionInjector;
+
   /// Force reload the viewer.
   ///
   /// Normally whether to reload the viewer is determined by the changes of the parameters but
@@ -513,6 +570,9 @@ class PdfViewerParams {
         other.pagePaintCallbacks == pagePaintCallbacks &&
         other.pageBackgroundPaintCallbacks == pageBackgroundPaintCallbacks &&
         other.onTextSelectionChange == onTextSelectionChange &&
+        other.selectableRegionInjector == selectableRegionInjector &&
+        other.perPageSelectableRegionInjector ==
+            perPageSelectableRegionInjector &&
         other.forceReload == forceReload;
   }
 
@@ -560,6 +620,8 @@ class PdfViewerParams {
         pagePaintCallbacks.hashCode ^
         pageBackgroundPaintCallbacks.hashCode ^
         onTextSelectionChange.hashCode ^
+        selectableRegionInjector.hashCode ^
+        perPageSelectableRegionInjector.hashCode ^
         forceReload.hashCode;
   }
 }
@@ -625,6 +687,20 @@ typedef PdfPageLayoutFunction = PdfPageLayout Function(
   PdfViewerParams params,
 );
 
+/// Function to normalize the matrix.
+///
+/// The function is called when the matrix is changed and normally used to restrict the matrix to certain range.
+///
+/// Another use case is to do something when the matrix is changed.
+///
+/// If no actual matrix change is needed, just return the input matrix.
+typedef PdfMatrixNormalizeFunction = Matrix4 Function(
+  Matrix4 matrix,
+  Size viewSize,
+  PdfPageLayout layout,
+  PdfViewerController? controller,
+);
+
 /// Function to build viewer overlays.
 ///
 /// [size] is the size of the viewer widget.
@@ -670,23 +746,40 @@ typedef PdfViewerErrorBannerBuilder = Widget Function(
 typedef PdfLinkWidgetBuilder = Widget? Function(
     BuildContext context, PdfLink link, Size size);
 
+/// Function to inject [SelectionArea] or [SelectableRegion] to customize text selection.
+typedef PdfSelectableRegionInjector = Widget Function(
+  BuildContext context,
+  Widget child,
+);
+
+/// Function to inject [SelectionArea] or [SelectableRegion] to customize text selection on each page.
+///
+/// [pageRect] is the rectangle of the page in the viewer.
+typedef PdfPerPageSelectableRegionInjector = Widget Function(
+  BuildContext context,
+  Widget child,
+  PdfPage page,
+  Rect pageRect,
+);
+
 /// Function to paint things on page.
 ///
 /// [canvas] is the canvas to paint on.
-/// [pageRect] is the rectangle of the page in the viewer.
-/// [page] is the page.
+/// [converter] is the converter to convert the coordinates between the page and the viewer.
 ///
 /// If you have some [PdfRect] that describes something on the page,
-/// you can use [PdfRect.toRect] to convert it to [Rect] and draw the rect on the canvas:
+/// you can use [converter] to convert it to [Rect] and draw the rect on the canvas:
 ///
 /// ```dart
 /// PdfRect pdfRect = ...;
 /// canvas.drawRect(
-///   pdfRect.toRectInPageRect(page: page, pageRect: pageRect),
+///   converter.toRectInPageRect(pdfRect),
 ///   Paint()..color = Colors.red);
 /// ```
 typedef PdfViewerPagePaintCallback = void Function(
-    ui.Canvas canvas, Rect pageRect, PdfPage page);
+  ui.Canvas canvas,
+  PdfPageCoordsConverter converter,
+);
 
 /// Function to be notified when the text selection is changed.
 ///

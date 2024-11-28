@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:web/web.dart' as web;
 
@@ -334,12 +335,14 @@ class PdfPageWeb extends PdfPage {
     double? fullWidth,
     double? fullHeight,
     Color? backgroundColor,
+    PdfPageRotation? rotationOverride,
     PdfAnnotationRenderingMode annotationRenderingMode =
         PdfAnnotationRenderingMode.annotationAndForms,
     PdfPageRenderCancellationToken? cancellationToken,
   }) async {
-    if (cancellationToken != null &&
-        cancellationToken is! PdfPageRenderCancellationTokenWeb) {
+    if (cancellationToken == null) {
+      cancellationToken = PdfPageRenderCancellationTokenWeb();
+    } else if (cancellationToken is! PdfPageRenderCancellationTokenWeb) {
       throw ArgumentError(
         'cancellationToken must be created by PdfPage.createCancellationToken().',
         'cancellationToken',
@@ -361,6 +364,7 @@ class PdfPageWeb extends PdfPage {
         fullWidth,
         fullHeight,
         backgroundColor,
+        rotationOverride,
         false,
         annotationRenderingMode,
         cancellationToken as PdfPageRenderCancellationTokenWeb,
@@ -380,11 +384,17 @@ class PdfPageWeb extends PdfPage {
     double fullWidth,
     double fullHeight,
     Color? backgroundColor,
+    PdfPageRotation? rotationOverride,
     bool dontFlip,
     PdfAnnotationRenderingMode annotationRenderingMode,
     PdfPageRenderCancellationTokenWeb cancellationToken,
   ) async {
-    final vp1 = page.getViewport(PdfjsViewportParams(scale: 1));
+    final rotate = (rotationOverride ?? rotation).index * 90;
+    final vp1 =
+        page.getViewport(PdfjsViewportParams(scale: 1, rotation: rotate));
+    debugPrint(
+        'Page ${page.pageNumber}: ${vp1.width}x${vp1.height}, ${fullWidth}x$fullHeight');
+
     final pageWidth = vp1.width;
     if (width <= 0 || height <= 0) {
       throw PdfException(
@@ -393,6 +403,7 @@ class PdfPageWeb extends PdfPage {
 
     final vp = page.getViewport(PdfjsViewportParams(
         scale: fullWidth / pageWidth,
+        rotation: rotate,
         offsetX: -x.toDouble(),
         offsetY: -y.toDouble(),
         dontFlip: dontFlip));

@@ -216,9 +216,9 @@ class _PdfViewerState extends State<PdfViewer>
 
   final List<double> _zoomStops = [1.0];
 
-  final _pageImages = <int, _PdfImageWithScale>{};
+  final _pageImages = <int, _PdfImageCache>{};
   final _pageImageRenderingTimers = <int, Timer>{};
-  final _pageImagesPartial = <int, _PdfImageWithScaleAndRect>{};
+  final _pageImagesPartial = <int, _PdfImageCacheAndRect>{};
   final _cancellationTokens = <int, List<PdfPageRenderCancellationToken>>{};
   final _pageImagePartialRenderingRequests =
       <int, _PdfPartialImageRenderingRequest>{};
@@ -420,11 +420,6 @@ class _PdfViewerState extends State<PdfViewer>
         });
       }
 
-      final Widget Function(Widget) selectionAreaInjector =
-          widget.params.enableTextSelection
-              ? (child) => SelectionArea(child: child)
-              : (child) => child;
-
       return Container(
         color: widget.params.backgroundColor,
         child: Focus(
@@ -436,51 +431,48 @@ class _PdfViewerState extends State<PdfViewer>
                 _determineCurrentPage();
                 _calcAlternativeFitScale();
                 _calcZoomStopTable();
-                return selectionAreaInjector(
-                  Builder(builder: (context) {
-                    return Stack(
-                      children: [
-                        iv.InteractiveViewer(
-                          transformationController: _txController,
-                          constrained: false,
-                          boundaryMargin: widget.params.boundaryMargin ??
-                              const EdgeInsets.all(double.infinity),
-                          maxScale: widget.params.maxScale,
-                          minScale: _alternativeFitScale != null
-                              ? _alternativeFitScale! / 2
-                              : 0.1,
-                          panAxis: widget.params.panAxis,
-                          panEnabled: widget.params.panEnabled,
-                          scaleEnabled: widget.params.scaleEnabled,
-                          onInteractionEnd: _onInteractionEnd,
-                          onInteractionStart: _onInteractionStart,
-                          onInteractionUpdate:
-                              widget.params.onInteractionUpdate,
-                          interactionEndFrictionCoefficient:
-                              widget.params.interactionEndFrictionCoefficient,
-                          onWheelDelta: widget.params.scrollByMouseWheel != null
-                              ? _onWheelDelta
-                              : null,
-                          // PDF pages
-                          child: CustomPaint(
-                            foregroundPainter:
-                                _CustomPainter.fromFunction(_customPaint),
-                            size: _layout!.documentSize,
-                          ),
+                return Builder(builder: (context) {
+                  return Stack(
+                    children: [
+                      iv.InteractiveViewer(
+                        transformationController: _txController,
+                        constrained: false,
+                        boundaryMargin: widget.params.boundaryMargin ??
+                            const EdgeInsets.all(double.infinity),
+                        maxScale: widget.params.maxScale,
+                        minScale: _alternativeFitScale != null
+                            ? _alternativeFitScale! / 2
+                            : 0.1,
+                        panAxis: widget.params.panAxis,
+                        panEnabled: widget.params.panEnabled,
+                        scaleEnabled: widget.params.scaleEnabled,
+                        onInteractionEnd: _onInteractionEnd,
+                        onInteractionStart: _onInteractionStart,
+                        onInteractionUpdate: widget.params.onInteractionUpdate,
+                        interactionEndFrictionCoefficient:
+                            widget.params.interactionEndFrictionCoefficient,
+                        onWheelDelta: widget.params.scrollByMouseWheel != null
+                            ? _onWheelDelta
+                            : null,
+                        // PDF pages
+                        child: CustomPaint(
+                          foregroundPainter:
+                              _CustomPainter.fromFunction(_customPaint),
+                          size: _layout!.documentSize,
                         ),
-                        ..._buildPageOverlayWidgets(context),
-                        if (_canvasLinkPainter.isEnabled)
-                          _canvasLinkPainter.linkHandlingOverlay(_viewSize!),
-                        if (widget.params.viewerOverlayBuilder != null)
-                          ...widget.params.viewerOverlayBuilder!(
-                            context,
-                            _viewSize!,
-                            _canvasLinkPainter._handleLinkTap,
-                          ),
-                      ],
-                    );
-                  }),
-                );
+                      ),
+                      ..._buildPageOverlayWidgets(context),
+                      if (_canvasLinkPainter.isEnabled)
+                        _canvasLinkPainter.linkHandlingOverlay(_viewSize!),
+                      if (widget.params.viewerOverlayBuilder != null)
+                        ...widget.params.viewerOverlayBuilder!(
+                          context,
+                          _viewSize!,
+                          _canvasLinkPainter._handleLinkTap,
+                        ),
+                    ],
+                  );
+                });
               }),
         ),
       );
@@ -771,7 +763,6 @@ class _PdfViewerState extends State<PdfViewer>
     final textWidgets = <Widget>[];
     final overlayWidgets = <Widget>[];
     final targetRect = _getCacheExtentRect();
-    final selectionRegistrar = SelectionContainer.maybeOf(context);
 
     for (int i = 0; i < _document!.pages.length; i++) {
       final rect = _layout!.pageLayouts[i];
@@ -781,13 +772,16 @@ class _PdfViewerState extends State<PdfViewer>
       final page = _document!.pages[i];
       final rectExternal = _documentToRenderBox(rect, renderBox);
       if (rectExternal != null) {
+        final converter = PdfPageCoordsConverter(page,
+            pageRect: rectExternal,
+            rotationOverride: _layout!.rotationOverrides[i]);
+
         if (widget.params.linkHandlerParams == null &&
             widget.params.linkWidgetBuilder != null) {
           linkWidgets.add(
             PdfPageLinksOverlay(
-              key: Key('#__pageLinks__:${page.pageNumber}'),
-              page: page,
-              pageRect: rectExternal,
+              key: Key('#__pageLinks__:${converter.hashCode}'),
+              converter: converter,
               params: widget.params,
               // FIXME: workaround for link widget eats wheel events.
               wrapperBuilder: (child) => Listener(
@@ -802,23 +796,34 @@ class _PdfViewerState extends State<PdfViewer>
           );
         }
 
-        if (selectionRegistrar != null &&
+        final isTextSelectionEnabled = (widget.params.enableTextSelection ||
+                widget.params.selectableRegionInjector != null ||
+                widget.params.perPageSelectableRegionInjector != null) &&
+            _document!.permissions?.allowsCopying != false;
+
+        Widget perPageSelectableRegionInjector(Widget child) =>
+            widget.params.perPageSelectableRegionInjector
+                ?.call(context, child, page, rectExternal) ??
+            child;
+
+        if (isTextSelectionEnabled &&
             _document!.permissions?.allowsCopying != false) {
           textWidgets.add(
             Positioned(
-              key: Key('#__pageTextOverlay__:${page.pageNumber}'),
+              key: Key('#__pageTextOverlay__:${converter.hashCode}'),
               left: rectExternal.left,
               top: rectExternal.top,
               width: rectExternal.width,
               height: rectExternal.height,
-              child: PdfPageTextOverlay(
-                selectables: _selectionHandlers,
-                enabled: !_isInteractionGoingOn,
-                page: page,
-                pageRect: rectExternal,
-                onTextSelectionChange: _onSelectionChange,
-                selectionColor:
-                    DefaultSelectionStyle.of(context).selectionColor!,
+              child: perPageSelectableRegionInjector(
+                PdfPageTextOverlay(
+                  selectables: _selectionHandlers,
+                  enabled: !_isInteractionGoingOn,
+                  converter: PdfPageCoordsConverter(page,  pageRect: rectExternal,)
+                  onTextSelectionChange: _onSelectionChange,
+                  selectionColor:
+                      DefaultSelectionStyle.of(context).selectionColor!,
+                ),
               ),
             ),
           );
@@ -843,17 +848,29 @@ class _PdfViewerState extends State<PdfViewer>
         }
       }
     }
+
+    Widget selectableRegionInjector(Widget child) =>
+        widget.params.selectableRegionInjector?.call(context, child) ??
+        (widget.params.enableTextSelection
+            ? SelectionArea(
+                child: child,
+              )
+            : child);
+
     return [
-      Listener(
-        behavior: HitTestBehavior.translucent,
-        // FIXME: Selectable absorbs wheel events.
-        onPointerSignal: (event) {
-          if (event is PointerScrollEvent) {
-            _onWheelDelta(event.scrollDelta);
-          }
-        },
-        child: Stack(children: textWidgets),
-      ),
+      if (textWidgets.isNotEmpty)
+        selectableRegionInjector(
+          Listener(
+            behavior: HitTestBehavior.translucent,
+            // FIXME: Selectable absorbs wheel events.
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent) {
+                _onWheelDelta(event.scrollDelta);
+              }
+            },
+            child: Stack(children: textWidgets),
+          ),
+        ),
       ...linkWidgets,
       ...overlayWidgets,
     ];
@@ -941,7 +958,7 @@ class _PdfViewerState extends State<PdfViewer>
       }
 
       final page = _document!.pages[i];
-      final realSize = _pageImages[page.pageNumber];
+      final fullPageImage = _pageImages[page.pageNumber];
       final partial = _pageImagesPartial[page.pageNumber];
 
       final scaleLimit = widget.params.getPageRenderingScale?.call(
@@ -960,20 +977,24 @@ class _PdfViewerState extends State<PdfViewer>
         canvas.drawRect(shadowRect, dropShadowPaint);
       }
 
+      final converter = _coordsConverterForPageNumber(i + 1);
+
       if (widget.params.pageBackgroundPaintCallbacks != null) {
         for (final callback in widget.params.pageBackgroundPaintCallbacks!) {
-          callback(canvas, rect, page);
+          callback(canvas, converter);
         }
       }
 
-      if (realSize != null) {
+      final rotation =
+          _layout!.rotationOverrides[page.pageNumber - 1] ?? page.rotation;
+      if (fullPageImage != null && fullPageImage.rotation == rotation) {
         canvas.drawImageRect(
-          realSize.image,
+          fullPageImage.image,
           Rect.fromLTWH(
             0,
             0,
-            realSize.image.width.toDouble(),
-            realSize.image.height.toDouble(),
+            fullPageImage.image.width.toDouble(),
+            fullPageImage.image.height.toDouble(),
           ),
           rect,
           Paint()..filterQuality = FilterQuality.high,
@@ -986,16 +1007,20 @@ class _PdfViewerState extends State<PdfViewer>
               ..style = PaintingStyle.fill);
       }
 
-      final scaleLimited = min(scale, scaleLimit);
-
-      if (realSize == null || realSize.scale != scaleLimited) {
-        _requestPageImageCached(page, scaleLimited);
-      }
-      if (scale > scaleLimit) {
-        _requestPartialImage(page, scale);
+      if (fullPageImage == null ||
+          fullPageImage.rotation != rotation ||
+          fullPageImage.scale != scaleLimit) {
+        _requestPageImageCached(page, scaleLimit, rotation);
       }
 
-      if (scale > scaleLimit && partial != null) {
+      final pageSize = page.getSize(rotationOverride: rotation);
+      final pageScale = scale *
+          max(rect.width / pageSize.width, rect.height / pageSize.height);
+      if (pageScale > scaleLimit) {
+        _requestPartialImage(page, scale, rotation, pageSize);
+      }
+
+      if (pageScale > scaleLimit && partial != null) {
         canvas.drawImageRect(
           partial.image,
           Rect.fromLTWH(
@@ -1010,12 +1035,12 @@ class _PdfViewerState extends State<PdfViewer>
       }
 
       if (_canvasLinkPainter.isEnabled) {
-        _canvasLinkPainter.paintLinkHighlights(canvas, rect, page);
+        _canvasLinkPainter.paintLinkHighlights(canvas, converter);
       }
 
       if (widget.params.pagePaintCallbacks != null) {
         for (final callback in widget.params.pagePaintCallbacks!) {
-          callback(canvas, rect, page);
+          callback(canvas, converter);
         }
       }
 
@@ -1040,42 +1065,48 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   PdfPageLayout _layoutPages(List<PdfPage> pages, PdfViewerParams params) {
-    final width =
-        pages.fold(0.0, (w, p) => max(w, p.width)) + params.margin * 2;
+    PdfPageRotation? r = PdfPageRotation.clockwise90;
+    final width = pages.fold(
+            0.0, (w, p) => max(w, p.getSize(rotationOverride: r).width)) +
+        params.margin * 2;
 
     final pageLayout = <Rect>[];
     var y = params.margin;
     for (int i = 0; i < pages.length; i++) {
       final page = pages[i];
-      final rect =
-          Rect.fromLTWH((width - page.width) / 2, y, page.width, page.height);
+      final pageSize = page.getSize(rotationOverride: r);
+      final rect = Rect.fromLTWH(
+          (width - pageSize.width) / 2, y, pageSize.width, pageSize.height);
       pageLayout.add(rect);
-      y += page.height + params.margin;
+      y += pageSize.height + params.margin;
     }
 
     return PdfPageLayout(
       pageLayouts: pageLayout,
       documentSize: Size(width, y),
+      rotationOverrides: List.filled(pages.length, r), // no rotation
     );
   }
 
   void _invalidate() => _updateStream.add(_txController.value);
 
-  Future<void> _requestPageImageCached(PdfPage page, double scale) async {
-    final width = page.width * scale;
-    final height = page.height * scale;
+  Future<void> _requestPageImageCached(
+      PdfPage page, double scale, PdfPageRotation rotation) async {
+    final pageSize = page.getSize(rotationOverride: rotation);
+    final width = pageSize.width * scale;
+    final height = pageSize.height * scale;
     if (width < 1 || height < 1) return;
 
     // if this is the first time to render the page, render it immediately
     if (!_pageImages.containsKey(page.pageNumber)) {
-      _cachePageImage(page, width, height, scale);
+      _cachePageImage(page, width, height, scale, rotation);
       return;
     }
 
     _pageImageRenderingTimers[page.pageNumber]?.cancel();
     _pageImageRenderingTimers[page.pageNumber] = Timer(
       const Duration(milliseconds: 50),
-      () => _cachePageImage(page, width, height, scale),
+      () => _cachePageImage(page, width, height, scale, rotation),
     );
   }
 
@@ -1084,18 +1115,22 @@ class _PdfViewerState extends State<PdfViewer>
     double width,
     double height,
     double scale,
+    PdfPageRotation rotation,
   ) async {
     if (!mounted) return;
-    if (_pageImages[page.pageNumber]?.scale == scale) return;
+    final cache = _pageImages[page.pageNumber];
+    if (cache?.scale == scale && cache?.rotation == rotation) return;
     final cancellationToken = page.createCancellationToken();
     _addCancellationToken(page.pageNumber, cancellationToken);
     await synchronized(() async {
       if (!mounted || cancellationToken.isCanceled) return;
-      if (_pageImages[page.pageNumber]?.scale == scale) return;
+      final cache = _pageImages[page.pageNumber];
+      if (cache?.scale == scale && cache?.rotation == rotation) return;
       final img = await page.render(
         fullWidth: width,
         fullHeight: height,
         backgroundColor: Colors.white,
+        rotationOverride: rotation,
         annotationRenderingMode: widget.params.annotationRenderingMode,
         cancellationToken: cancellationToken,
       );
@@ -1104,7 +1139,7 @@ class _PdfViewerState extends State<PdfViewer>
         img.dispose();
         return;
       }
-      final newImage = _PdfImageWithScale(await img.createImage(), scale);
+      final newImage = _PdfImageCache(await img.createImage(), scale, rotation);
       if (!mounted || cancellationToken.isCanceled) {
         img.dispose();
         newImage.dispose();
@@ -1117,7 +1152,8 @@ class _PdfViewerState extends State<PdfViewer>
     });
   }
 
-  Future<void> _requestPartialImage(PdfPage page, double scale) async {
+  Future<void> _requestPartialImage(PdfPage page, double scale,
+      PdfPageRotation rotation, Size pageSize) async {
     _pageImagePartialRenderingRequests[page.pageNumber]?.cancel();
     final cancellationToken = page.createCancellationToken();
     _pageImagePartialRenderingRequests[page.pageNumber] =
@@ -1126,8 +1162,8 @@ class _PdfViewerState extends State<PdfViewer>
         const Duration(milliseconds: 300),
         () async {
           if (!mounted || cancellationToken.isCanceled) return;
-          final newImage =
-              await _createPartialImage(page, scale, cancellationToken);
+          final newImage = await _createPartialImage(
+              page, scale, pageSize, rotation, cancellationToken);
           if (_pageImagesPartial[page.pageNumber] == newImage) return;
           _pageImagesPartial.remove(page.pageNumber)?.dispose();
           if (newImage != null) {
@@ -1140,15 +1176,19 @@ class _PdfViewerState extends State<PdfViewer>
     );
   }
 
-  Future<_PdfImageWithScaleAndRect?> _createPartialImage(
+  Future<_PdfImageCacheAndRect?> _createPartialImage(
     PdfPage page,
     double scale,
+    Size pageSize,
+    PdfPageRotation rotation,
     PdfPageRenderCancellationToken cancellationToken,
   ) async {
     final pageRect = _layout!.pageLayouts[page.pageNumber - 1];
     final rect = pageRect.intersect(_visibleRect);
     final prev = _pageImagesPartial[page.pageNumber];
-    if (prev?.rect == rect && prev?.scale == scale) return prev;
+    if (prev?.rect == rect &&
+        prev?.scale == scale &&
+        prev?.rotation == rotation) return prev;
     if (rect.width < 1 || rect.height < 1) return null;
     final inPageRect = rect.translate(-pageRect.left, -pageRect.top);
 
@@ -1162,6 +1202,7 @@ class _PdfViewerState extends State<PdfViewer>
       fullWidth: pageRect.width * scale,
       fullHeight: pageRect.height * scale,
       backgroundColor: Colors.white,
+      rotationOverride: rotation,
       annotationRenderingMode: widget.params.annotationRenderingMode,
       cancellationToken: cancellationToken,
     );
@@ -1171,7 +1212,7 @@ class _PdfViewerState extends State<PdfViewer>
       return null;
     }
     final result =
-        _PdfImageWithScaleAndRect(await img.createImage(), scale, rect);
+        _PdfImageCacheAndRect(await img.createImage(), scale, rotation, rect);
     img.dispose();
     return result;
   }
@@ -1225,12 +1266,20 @@ class _PdfViewerState extends State<PdfViewer>
   /// Restrict matrix to the safe range.
   Matrix4 _makeMatrixInSafeRange(Matrix4 newValue) {
     _updateViewSizeAndCoverScale(_viewSize!);
+    if (widget.params.normalizeMatrix != null) {
+      return widget.params.normalizeMatrix!(
+        newValue,
+        _viewSize!,
+        _layout!,
+        _controller,
+      );
+    }
+    return _normalizeMatrix(newValue);
+  }
 
+  Matrix4 _normalizeMatrix(Matrix4 newValue) {
     final position = newValue.calcPosition(_viewSize!);
-
-    final params = widget.params;
-
-    final newZoom = params.boundaryMargin != null
+    final newZoom = widget.params.boundaryMargin != null
         ? newValue.zoom
         : max(newValue.zoom, minScale);
     final hw = _viewSize!.width / 2 / newZoom;
@@ -1323,15 +1372,18 @@ class _PdfViewerState extends State<PdfViewer>
         anchor: anchor,
       );
 
+  PdfPageCoordsConverter _coordsConverterForPageNumber(int pageNumber) =>
+      PdfPageCoordsConverter(
+        _document!.pages[pageNumber - 1],
+        pageRect: _layout!.pageLayouts[pageNumber - 1],
+        rotationOverride: _layout!.rotationOverrides[pageNumber - 1],
+      );
+
   Rect _calcRectForRectInsidePage({
     required int pageNumber,
     required PdfRect rect,
-  }) {
-    final page = _document!.pages[pageNumber - 1];
-    final pageRect = _layout!.pageLayouts[pageNumber - 1];
-    final area = rect.toRect(page: page, scaledPageSize: pageRect.size);
-    return area.translate(pageRect.left, pageRect.top);
-  }
+  }) =>
+      _coordsConverterForPageNumber(pageNumber).toRectWithPageOffset(rect);
 
   Matrix4 _calcMatrixForRectInsidePage({
     required int pageNumber,
@@ -1503,7 +1555,7 @@ class _PdfViewerState extends State<PdfViewer>
     final int targetPageNumber;
     if (pageNumber < 1) {
       targetPageNumber = 1;
-    } else if (pageNumber >= pageCount) {
+    } else if (pageNumber != 1 && pageNumber >= pageCount) {
       targetPageNumber = pageCount;
       anchor ??= widget.params.pageAnchorEnd;
     } else {
@@ -1654,19 +1706,29 @@ class _PdfPartialImageRenderingRequest {
   }
 }
 
-class _PdfImageWithScale {
-  _PdfImageWithScale(this.image, this.scale);
+class _PdfImageCache {
+  _PdfImageCache(this.image, this.scale, this.rotation);
   final ui.Image image;
   final double scale;
+  final PdfPageRotation? rotation;
 
   void dispose() {
     image.dispose();
   }
+
+  bool paramEquals(_PdfImageCache cache) =>
+      scale == cache.scale && rotation == cache.rotation;
 }
 
-class _PdfImageWithScaleAndRect extends _PdfImageWithScale {
-  _PdfImageWithScaleAndRect(super.image, super.scale, this.rect);
+class _PdfImageCacheAndRect extends _PdfImageCache {
+  _PdfImageCacheAndRect(super.image, super.scale, super.rotation, this.rect);
   final Rect rect;
+
+  @override
+  bool paramEquals(_PdfImageCache cache) =>
+      cache is _PdfImageCacheAndRect &&
+      super.paramEquals(cache) &&
+      rect == (cache).rect;
 }
 
 class _PdfViewerTransformationController extends TransformationController {
@@ -1682,9 +1744,20 @@ class _PdfViewerTransformationController extends TransformationController {
 
 /// Defines page layout.
 class PdfPageLayout {
-  PdfPageLayout({required this.pageLayouts, required this.documentSize});
+  PdfPageLayout({
+    required this.pageLayouts,
+    required this.documentSize,
+    required this.rotationOverrides,
+  });
+
+  /// The layout rectangle of each page.
   final List<Rect> pageLayouts;
+
+  /// The document layout size. The size is the minimum size that can contain all the pages.
   final Size documentSize;
+
+  /// The rotation override of each page.
+  final List<PdfPageRotation?> rotationOverrides;
 }
 
 /// Represents the result of the hit test on the page.
@@ -2271,14 +2344,17 @@ class _CanvasLinkPainter {
   }
 
   /// Paints the link highlights.
-  void paintLinkHighlights(Canvas canvas, Rect pageRect, PdfPage page) {
-    final links = _ensureLinksLoaded(page);
+  void paintLinkHighlights(
+    Canvas canvas,
+    PdfPageCoordsConverter converter,
+  ) {
+    final links = _ensureLinksLoaded(converter.page);
     if (links == null) return;
 
     final customPainter = _state.widget.params.linkHandlerParams?.customPainter;
 
     if (customPainter != null) {
-      customPainter.call(canvas, pageRect, page, links);
+      customPainter.call(canvas, converter.pageRect, converter.page, links);
       return;
     }
 
@@ -2288,7 +2364,7 @@ class _CanvasLinkPainter {
       ..style = PaintingStyle.fill;
     for (final link in links) {
       for (final rect in link.rects) {
-        final rectLink = rect.toRectInPageRect(page: page, pageRect: pageRect);
+        final rectLink = converter.toRectWithPageOffset(rect);
         canvas.drawRect(rectLink, paint);
       }
     }

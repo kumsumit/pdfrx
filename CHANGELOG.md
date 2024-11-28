@@ -1,3 +1,28 @@
+# 1.0.90
+
+- Introduces selectableRegionInjector/perPageSelectableRegionInjector (#256)
+
+# 1.0.89
+
+- web 1.1.0 support (#254)
+
+# 1.0.88
+
+- Merge pull request #251
+
+# 1.0.87
+
+- BREAKING CHANGE: add more parameters to PdfViewerParams.normalizeMatrix to make it easier to handle more complex situations (#239)
+
+# 1.0.86
+
+- Add PdfViewerParams.normalizeMatrix to customize the transform matrix restriction; customizing existing logic on _PdfViewerState._makeMatrixInSafeRange; for issues like #239
+
+# 1.0.85
+
+- Fixes single-page layout issue on viewer start (#247)
+- Fixes blurry image issues (#245, #232)
+
 # 1.0.84
 
 - Merge PR #230 to add try-catch on UTF-8 decoding of URI path
