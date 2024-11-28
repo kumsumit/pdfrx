@@ -819,7 +819,7 @@ class _PdfViewerState extends State<PdfViewer>
                 PdfPageTextOverlay(
                   selectables: _selectionHandlers,
                   enabled: !_isInteractionGoingOn,
-                  converter: PdfPageCoordsConverter(page,  pageRect: rectExternal,)
+                  converter: PdfPageCoordsConverter(page,  pageRect: rectExternal,),
                   onTextSelectionChange: _onSelectionChange,
                   selectionColor:
                       DefaultSelectionStyle.of(context).selectionColor!,
