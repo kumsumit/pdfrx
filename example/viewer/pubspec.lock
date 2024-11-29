@@ -192,50 +192,56 @@ packages:
   path_provider:
     dependency: transitive
     description:
-      name: path_provider
-      sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: f8058fee027daef389cd229a12fee9a7ede4b59e
+      url: "https://github.com/kumsumit/path_provider.git"
+    source: git
     version: "2.1.5"
   path_provider_android:
     dependency: transitive
     description:
-      name: path_provider_android
-      sha256: "6f01f8e37ec30b07bc424b4deabac37cacb1bc7e2e515ad74486039918a37eb7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.10"
+      path: "."
+      ref: HEAD
+      resolved-ref: "3f6b159b87ea1a43abe565cc69a4112bc9de7056"
+      url: "https://github.com/kumsumit/path_provider_android.git"
+    source: git
+    version: "2.2.13"
   path_provider_foundation:
     dependency: transitive
     description:
-      name: path_provider_foundation
-      sha256: f234384a3fdd67f989b4d54a5d73ca2a6c422fa55ae694381ae0f4375cd1ea16
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "7df635a13da8580574f4ac68a842cb1d4fdf9be3"
+      url: "https://github.com/kumsumit/path_provider_foundation.git"
+    source: git
     version: "2.4.0"
   path_provider_linux:
     dependency: transitive
     description:
-      name: path_provider_linux
-      sha256: f7a1fe3a634fe7734c8d3f2766ad746ae2a2884abe22e241a8b301bf5cac3279
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "0a64000e5851c4f31030032b48869bd9111bb580"
+      url: "https://github.com/kumsumit/path_provider_linux.git"
+    source: git
     version: "2.2.1"
   path_provider_platform_interface:
     dependency: transitive
     description:
-      name: path_provider_platform_interface
-      sha256: "88f5779f72ba699763fa3a3b06aa4bf6de76c8e5de842cf6f29e2e06476c2334"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "04979ca2044423ac0b82f2a4fc582decc7e84e99"
+      url: "https://github.com/kumsumit/path_provider_platform_interface.git"
+    source: git
     version: "2.1.2"
   path_provider_windows:
     dependency: transitive
     description:
-      name: path_provider_windows
-      sha256: bd6f00dbd873bfb70d0761682da2b3a2c2fccc2b9e84c495821639601d81afe7
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "1bddd64796c9f02e23663a49ec9d3b3f62504448"
+      url: "https://github.com/kumsumit/path_provider_windows.git"
+    source: git
     version: "2.3.0"
   pdfrx:
     dependency: "direct main"
@@ -255,10 +261,11 @@ packages:
   plugin_platform_interface:
     dependency: transitive
     description:
-      name: plugin_platform_interface
-      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "5b87c0b21d7dfa69ff1b00993bc6f895ab5b0de5"
+      url: "https://github.com/kumsumit/plugin_platform_interface.git"
+    source: git
     version: "2.1.8"
   rxdart:
     dependency: "direct main"
@@ -340,66 +347,74 @@ packages:
   url_launcher:
     dependency: "direct main"
     description:
-      name: url_launcher
-      sha256: "9d06212b1362abc2f0f0d78e6f09f726608c74e3b9462e8368bb03314aa8d603"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: eff7a563912e771ecbdaf783d7ddd1a26e584d19
+      url: "https://github.com/kumsumit/url_launcher.git"
+    source: git
     version: "6.3.1"
   url_launcher_android:
     dependency: transitive
     description:
-      name: url_launcher_android
-      sha256: e35a698ac302dd68e41f73250bd9517fe3ab5fa4f18fe4647a0872db61bacbab
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.3.10"
+      path: "."
+      ref: HEAD
+      resolved-ref: df5545574bba742919e0699b98e2c2895a46e58b
+      url: "https://github.com/kumsumit/url_launcher_android.git"
+    source: git
+    version: "6.3.14"
   url_launcher_ios:
     dependency: transitive
     description:
-      name: url_launcher_ios
-      sha256: e43b677296fadce447e987a2f519dcf5f6d1e527dc35d01ffab4fff5b8a7063e
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "6bee057709a4d0eeae60a9169101870c7ba14490"
+      url: "https://github.com/kumsumit/url_launcher_ios.git"
+    source: git
     version: "6.3.1"
   url_launcher_linux:
     dependency: transitive
     description:
-      name: url_launcher_linux
-      sha256: e2b9622b4007f97f504cd64c0128309dfb978ae66adbe944125ed9e1750f06af
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: a08e988c38b8f1783a881993c3fc4717d06711d6
+      url: "https://github.com/kumsumit/url_launcher_linux.git"
+    source: git
+    version: "3.2.1"
   url_launcher_macos:
     dependency: transitive
     description:
-      name: url_launcher_macos
-      sha256: "9a1a42d5d2d95400c795b2914c36fdcb525870c752569438e4ebb09a2b5d90de"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: e9ebbd6921d55098f094b9fb025bc9caa58280a7
+      url: "https://github.com/kumsumit/url_launcher_macos.git"
+    source: git
+    version: "3.2.1"
   url_launcher_platform_interface:
     dependency: transitive
     description:
-      name: url_launcher_platform_interface
-      sha256: "552f8a1e663569be95a8190206a38187b531910283c3e982193e4f2733f01029"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: b5ca29ecbf17fc7c3914948bf2986248ee894759
+      url: "https://github.com/kumsumit/url_launcher_platform_interface.git"
+    source: git
     version: "2.3.2"
   url_launcher_web:
     dependency: transitive
     description:
-      name: url_launcher_web
-      sha256: "772638d3b34c779ede05ba3d38af34657a05ac55b06279ea6edd409e323dca8e"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: ce748c65d1a40d0c0f71fd79ea058a0d4799ad86
+      url: "https://github.com/kumsumit/url_launcher_web.git"
+    source: git
     version: "2.3.3"
   url_launcher_windows:
     dependency: transitive
     description:
-      name: url_launcher_windows
-      sha256: "49c10f879746271804767cb45551ec5592cdab00ee105c06dddde1a98f73b185"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "1697f91a996f13ae3adfc3f0264d43c2fd1499bd"
+      url: "https://github.com/kumsumit/url_launcher_windows.git"
+    source: git
     version: "3.1.2"
   vector_math:
     dependency: transitive
@@ -425,14 +440,23 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  win32:
+    dependency: transitive
+    description:
+      name: win32
+      sha256: "84ba388638ed7a8cb3445a320c8273136ab2631cd5f2c57888335504ddab1bc2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.8.0"
   xdg_directories:
     dependency: transitive
     description:
-      name: xdg_directories
-      sha256: faea9dee56b520b55a566385b84f2e8de55e7496104adada9962e0bd11bcff1d
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.4"
+      path: "."
+      ref: HEAD
+      resolved-ref: "410932cf9651a439aa3e2c2f21098cc61e6daa8a"
+      url: "https://github.com/kumsumit/xdg_directories.git"
+    source: git
+    version: "1.0.3"
 sdks:
   dart: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"

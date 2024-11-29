@@ -17,7 +17,8 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   rxdart: ^0.28.0
-  url_launcher: ^6.3.1
+  url_launcher:
+    git: https://github.com/kumsumit/url_launcher.git
   synchronized: ^3.3.0
 
 dev_dependencies:
