@@ -10,20 +10,28 @@ import 'package:http/http.dart' as http;
 // The trick to support Flutter Web is to use conditional import
 // Both of the files define PdfDocumentFactoryImpl class but only one of them is imported.
 import '../pdfrx.dart';
-import 'pdfium/pdfrx_pdfium.dart' if (dart.library.js) 'web/pdfrx_web.dart';
+import 'web/pdfrx_web.dart' if (dart.library.io) 'pdfium/pdfrx_pdfium.dart';
 
 /// Class to provide Pdfrx's configuration.
+/// The parameters should be set before calling any Pdfrx's functions.
 abstract class Pdfrx {
   /// Explicitly specify pdfium module path for special purpose.
   ///
   /// It is not supported on Flutter Web.
   static String? pdfiumModulePath;
 
+  /// Font paths scanned by pdfium if supported.
+  ///
+  /// It is not supported on Flutter Web.
+  static final fontPaths = <String>[];
+
   /// Overriding the default HTTP client for PDF download.
   ///
   /// It is not supported on Flutter Web.
   static http.Client Function()? createHttpClient;
 }
+
+
 
 /// For platform abstraction purpose; use [PdfDocument] instead.
 abstract class PdfDocumentFactory {
@@ -176,8 +184,8 @@ abstract class PdfDocument {
   /// [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   ///
-  /// [sourceName] can be any arbitrary string to identify the source of the PDF; [data] does not identify the source
-  /// if such name is explicitly specified.
+  /// [sourceName] must be some ID, e.g., file name or URL, to identify the source of the PDF. If [sourceName] is not
+  /// unique for each source, the viewer may not work correctly.
   static Future<PdfDocument> openData(
     Uint8List data, {
     PdfPasswordProvider? passwordProvider,
@@ -203,8 +211,8 @@ abstract class PdfDocument {
   /// [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   ///
-  /// [sourceName] can be any arbitrary string to identify the source of the PDF; Neither of [read]/[fileSize]
-  /// identify the source if such name is explicitly specified.
+  /// [sourceName] must be some ID, e.g., file name or URL, to identify the source of the PDF. If [sourceName] is not
+  /// unique for each source, the viewer may not work correctly.
   static Future<PdfDocument> openCustom({
     required FutureOr<int> Function(Uint8List buffer, int position, int size)
         read,
@@ -934,6 +942,67 @@ class PdfRect {
 
   /// Empty rectangle.
   static const empty = PdfRect(0, 0, 0, 0);
+
+  /// Convert to [Rect] in Flutter coordinate.
+  /// [page] is the page to convert the rectangle.
+  /// [scaledPageSize] is the scaled page size to scale the rectangle. If not specified, [PdfPage.size] is used.
+  /// [rotation] is the rotation of the page. If not specified, [PdfPage.rotation] is used.
+  Rect toRect({
+    required PdfPage page,
+    Size? scaledPageSize,
+    int? rotation,
+  }) {
+    final rotated = rotate(rotation ?? page.rotation.index, page);
+    final scale =
+        scaledPageSize == null ? 1.0 : scaledPageSize.height / page.height;
+    return Rect.fromLTRB(
+      rotated.left * scale,
+      (page.height - rotated.top) * scale,
+      rotated.right * scale,
+      (page.height - rotated.bottom) * scale,
+    );
+  }
+
+  ///  Convert to [Rect] in Flutter coordinate using [pageRect] as the page's bounding rectangle.
+  Rect toRectInPageRect({
+    required PdfPage page,
+    required Rect pageRect,
+  }) =>
+      toRect(page: page, scaledPageSize: pageRect.size)
+          .translate(pageRect.left, pageRect.top);
+
+  PdfRect rotate(int rotation, PdfPage page) {
+    final swap = (page.rotation.index & 1) == 1;
+    final width = swap ? page.height : page.width;
+    final height = swap ? page.width : page.height;
+    switch (rotation & 3) {
+      case 0:
+        return this;
+      case 1:
+        return PdfRect(
+          bottom,
+          width - left,
+          top,
+          width - right,
+        );
+      case 2:
+        return PdfRect(
+          width - right,
+          height - bottom,
+          width - left,
+          height - top,
+        );
+      case 3:
+        return PdfRect(
+          height - top,
+          right,
+          height - bottom,
+          left,
+        );
+      default:
+        throw ArgumentError.value(rotate, 'rotate');
+    }
+  }
 
   PdfRect inflate(double dx, double dy) =>
       PdfRect(left - dx, top + dy, right + dx, bottom - dy);

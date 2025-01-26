@@ -28,6 +28,7 @@ class PdfTextSearcher extends Listenable {
   int? _searchingPageNumber;
   int? _totalPageCount;
   bool _isSearching = false;
+  final _cachedText = <int, PdfPageText>{};
 
   /// The current match index in [matches] if available.
   int? get currentIndex => _currentIndex;
@@ -119,7 +120,10 @@ class PdfTextSearcher extends Listenable {
   void resetTextSearch() => _resetTextSearch();
 
   /// Almost identical to [resetTextSearch], but does not notify listeners.
-  void dispose() => _resetTextSearch(notify: false);
+  void dispose() {
+    _cachedText.clear();
+    _resetTextSearch(notify: false);
+  }
 
   void _resetTextSearch({bool notify = true}) {
     _cancelTextSearch();
@@ -129,6 +133,7 @@ class PdfTextSearcher extends Listenable {
     _currentIndex = null;
     _currentMatch = null;
     _isSearching = false;
+    _lastSearchPattern = null;
     if (notify) {
       notifyListeners();
     }
@@ -155,7 +160,8 @@ class PdfTextSearcher extends Listenable {
         for (final page in document.pages) {
           _searchingPageNumber = page.pageNumber;
           if (searchSession != _searchSession) return;
-          final pageText = await page.loadText();
+          final pageText = await loadText(pageNumber: page.pageNumber);
+          if (pageText == null) continue;
           textMatchesPageStartIndex.add(textMatches.length);
           await for (final f in pageText.allMatches(
             text,
@@ -185,8 +191,12 @@ class PdfTextSearcher extends Listenable {
 
   /// Just a helper function to load the text of a page.
   Future<PdfPageText?> loadText({required int pageNumber}) async {
-    return await controller
-        ?.useDocument((document) => document.pages[pageNumber - 1].loadText());
+    final cached = _cachedText[pageNumber];
+    if (cached != null) return cached;
+    return await controller?.useDocument((document) async {
+      return _cachedText[pageNumber] ??=
+          await document.pages[pageNumber - 1].loadText();
+    });
   }
 
   /// Go to the previous match.
@@ -259,9 +269,9 @@ class PdfTextSearcher extends Listenable {
     if (range == null) return;
 
     final matchTextColor =
-        controller?.params.matchTextColor ?? Colors.yellow.withOpacity(0.5);
+        controller?.params.matchTextColor ?? Colors.yellow.withValues(alpha:0.5);
     final activeMatchTextColor = controller?.params.activeMatchTextColor ??
-        Colors.orange.withOpacity(0.5);
+        Colors.orange.withValues(alpha:0.5);
 
     for (int i = range.start; i < range.end; i++) {
       final m = _matches[i];

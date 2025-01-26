@@ -1,3 +1,51 @@
+# 1.0.101
+
+- Revert commit d66fb3f that breaks consistency; Color.withValues -> Color.withOpacity
+- Update pdfium ffi bindings
+
+# 1.0.100
+
+- PdfTextSearcher introduces text caches (#293)
+- PdfTextSearcher search reset issue (#291)
+- collection's version spec. reverted to pre-1.0.95
+
+# 1.0.99
+
+- Introduces Pdfrx.fontPaths to set pdfium font loading path (#140)
+
+# 1.0.98
+
+- Introduces PdfViewerController.calcFitZoomMatrices to realize fit-to-width easier
+
+# 1.0.97
+
+- Document updates
+
+# 1.0.96
+
+- FIXED: #260 onTextSelectionChange callback cant be called
+
+# 1.0.95
+
+- FIXED: #273; apart from the ream WASM support, it fixes several compilation issues with --wasm option
+
+# 1.0.94
+
+- Merge PR #272; Fix minScale is not used
+
+# 1.0.93
+
+- Merge PR #264; Check for non-existent zoom element in PdfDest.params in some PDFs
+- FIXED: Widget tests starts to fail when using PdfViewer widget #263
+
+# 1.0.92
+
+- Merge PR #262; Remove redundant check that breaks building on some systems
+
+# 1.0.91
+
+- Fixes selection issues caused by the changes on 1.0.90
+
 # 1.0.90
 
 - Introduces selectableRegionInjector/perPageSelectableRegionInjector (#256)
@@ -8,7 +56,7 @@
 
 # 1.0.88
 
-- Merge pull request #251
+- Merge PR #251
 
 # 1.0.87
 
