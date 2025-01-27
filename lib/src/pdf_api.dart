@@ -379,7 +379,7 @@ abstract class PdfPage {
 /// Page rotation.
 enum PdfPageRotation {
   clockwise0,
-  clockwise90,
+  clockwise90,  
   clockwise180,
   clockwise270,
 }

@@ -1,3 +1,5 @@
+// import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -188,7 +190,7 @@ class _MainPageState extends State<MainPage> {
             child: Stack(
               children: [
                 PdfViewer.asset(
-                  'assets/rotate-test.pdf',
+                  'assets/hello.pdf',
                   // PdfViewer.file(
                   //   r"D:\pdfrx\example\assets\hello.pdf",
                   // PdfViewer.uri(
@@ -203,20 +205,18 @@ class _MainPageState extends State<MainPage> {
                     // facing pages algorithm
                     // layoutPages: (pages, params) {
                     //   // They should be moved outside function
-                    //   const isRightToLeftReadingOrder = false;
-                    //   const needCoverPage = true;
+                    //   // const isRightToLeftReadingOrder = false;
+                    //   // const needCoverPage = true;
                     //   final width = pages.fold(
                     //       0.0, (prev, page) => max(prev, page.width));
 
                     //   final pageLayouts = <Rect>[];
                     //   double y = params.margin;
                     //   for (int i = 0; i < pages.length; i++) {
-                    //     const offset = needCoverPage ? 1 : 0;
+                    //     const offset =1;
                     //     final page = pages[i];
                     //     final pos = i + offset;
-                    //     final isLeft = isRightToLeftReadingOrder
-                    //         ? (pos & 1) == 1
-                    //         : (pos & 1) == 0;
+                    //     final isLeft =  (pos & 1) == 0;
 
                     //     final otherSide = (pos ^ 1) - offset;
                     //     final h = 0 <= otherSide && otherSide < pages.length
@@ -238,6 +238,7 @@ class _MainPageState extends State<MainPage> {
                     //     }
                     //   }
                     //   return PdfPageLayout(
+                    //     rotationOverrides: [PdfPageRotation.clockwise90],
                     //     pageLayouts: pageLayouts,
                     //     documentSize: Size(
                     //       (params.margin + width) * 2 + params.margin,
@@ -245,7 +246,7 @@ class _MainPageState extends State<MainPage> {
                     //     ),
                     //   );
                     // },
-                    //
+                    
                     onViewSizeChanged: (viewSize, oldViewSize, controller) {
                       if (oldViewSize != null) {
                         //

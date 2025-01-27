@@ -1089,7 +1089,7 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   PdfPageLayout _layoutPages(List<PdfPage> pages, PdfViewerParams params) {
-    PdfPageRotation? r = PdfPageRotation.clockwise90;
+    PdfPageRotation? r = PdfPageRotation.clockwise0;
     final width = pages.fold(
             0.0, (w, p) => max(w, p.getSize(rotationOverride: r).width)) +
         params.margin * 2;
@@ -1403,7 +1403,8 @@ class _PdfViewerState extends State<PdfViewer>
       PdfPageCoordsConverter(
         _document!.pages[pageNumber - 1],
         pageRect: _layout!.pageLayouts[pageNumber - 1],
-        rotationOverride: _layout!.rotationOverrides[pageNumber - 1],
+        // rotationOverride: PdfPageRotation.clockwise90
+        //  _layout!.rotationOverrides[pageNumber-1],
       );
 
   Rect _calcRectForRectInsidePage({
