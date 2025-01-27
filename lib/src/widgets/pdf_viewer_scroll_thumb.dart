@@ -84,7 +84,7 @@ class _PdfViewerScrollThumbState extends State<PdfViewerScrollThumb> {
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha:0.5),
                     spreadRadius: 1,
                     blurRadius: 1,
                     offset: const Offset(1, 1),
@@ -133,7 +133,7 @@ class _PdfViewerScrollThumbState extends State<PdfViewerScrollThumb> {
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: .5),
                     spreadRadius: 1,
                     blurRadius: 1,
                     offset: const Offset(1, 1),
