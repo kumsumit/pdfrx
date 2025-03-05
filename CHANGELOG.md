@@ -1,3 +1,64 @@
+# 1.1.11
+
+- Color.withOpacity -> Color.withValues, Color.value -> Color.toARGB32()
+
+# 1.1.10
+
+- Update project structure to conform to [Package layout conventions](https://dart.dev/tools/pub/package-layout)
+- revert: example code move on 1.1.9
+
+# 1.1.9
+
+- Move back the example viewer  to example directory
+
+# 1.1.8
+
+- Internal refactoring to improve the code integrity
+
+# 1.1.7
+
+- Introducing allowDataOwnershipTransfer on PdfDocument.openData to allow transfer data ownership of the passed data; it is false by default to keep consistency with the previous behavior
+  - This actually fixes #303 but the drawback is that extra memory may be consumed on Flutter Web...
+
+# 1.1.6
+
+- "Bleeding edge" Pdfium WASM support (disabled by default)
+
+# 1.1.5
+
+- Explicitly specify web support on pubspec.yaml
+
+# 1.1.4
+
+- SDK constraint gets back to `>=3.7.0-323.0.dev`
+
+# 1.1.3
+
+- Further WASM compatibility updates
+- Demo page: CORS override for GitHub Pages using [gzuidhof/coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker)
+
+# 1.1.2
+
+- FIXED: if running with WASM enabled on Flutter Web, certain PDF file could not be loaded correctly
+- Debug log to know WASM/SharedArrayBuffer status on Flutter Web
+
+# 1.1.1
+
+- Supporting Flutter 3.29.0/Dart 3.7.0 (Stable) with workaround for breaking changes on Flutter 3.29.0 (#295)
+  - It breaks compatibility with older stable Flutter versions :(
+
+# 1.0.103
+
+- Change the default CDN for pdf.js to `https://cdn.jsdelivr.net/npm/pdfjs-dist@<VERSION>/build/pdf.js` to deal with CORS error on loading CMAP files
+- FIXED: pdfjsGetDocumentFromData, which is used by various PdfDocument open functions, does not propagate cMapUrl/cMapPacked to the pdf.js
+
+# 1.0.102
+
+- dart2wasm compatibility updates
+- Pdf.js 4.10.38
+- PdfTextSearcher correctly releases its listeners on dispose
+- Example viewer code updates
+
 # 1.0.101
 
 - Revert commit d66fb3f that breaks consistency; Color.withValues -> Color.withOpacity
@@ -432,53 +493,53 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
 - PdfDocumentRef now has stackTrace for error
 - PdfFileCache now uses dedicated http.Client instance
 
-## 0.4.21
+# 0.4.21
 
 - Now PdfDocumentRef has const constructor and PdfViewer.documentRef is also const
 
-## 0.4.20
+# 0.4.20
 
 - Removes PdfDocumentProvider (Actually PdfDocumentRef does everything)
 - Fixes breakage introduced by 0.4.18
 
-## 0.4.19
+# 0.4.19
 
 - firstAttemptByEmptyPassword should be true by default
 
-## 0.4.18
+# 0.4.18
 
 - PdfDocumentProvider supercedes PdfDocumentStore (PR #42)
 - PDFium 6259 for Windows, Linux, and Android
 - FIXED: Bug: Tests fail due to null operator check on PdfViewerController #44
 
-## 0.4.17
+# 0.4.17
 
 - Additional fixes to text selection mechanism
 
-## 0.4.16
+# 0.4.16
 
 - Remove password parameters; use passwordProvider instead.
 - Fixes several resource leak scenarios on PdfDocument open failures
 - Restrict text selection if PDF permission does not allow copying
 - Remove PdfViewer.documentRef; unnamed constructor is enough for the purpose
 
-## 0.4.15
+# 0.4.15
 
 - Introduces PdfViewer.documentRef (#36)
 - FIXED: PdfViewer.uri is broken on web for non relative paths #37
 - FIXED: Don't Animate to initialPage #39
 
-## 0.4.14
+# 0.4.14
 
 - Introduces PdfViewerParams.onDocumentChanged event
 - Introduces PdfDocument.loadOutline to load outline (a.k.a. bookmark)
 
-## 0.4.13
+# 0.4.13
 
 - Improves document password handling by async PasswordProvider (#20)
 - Introduces PdfViewerParams.errorBannerBuilder
 
-## 0.4.12
+# 0.4.12
 
 - Introduces PdfViewerParams.maxImageBytesCachedOnMemory, which restricts the maximum cache memory consumption
   - Better than logic based on maxThumbCacheCount
@@ -487,23 +548,23 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
   - maxRealSizeImageCount
   - enableRealSizeRendering
 
-## 0.4.11
+# 0.4.11
 
 - Add support for PDF Destination (Page links)
 
-## 0.4.10
+# 0.4.10
 
 - FIXED: isEncrypted property of document returns always true even the document is not encrypted (#29)
 
-## 0.4.9
+# 0.4.9
 
 - FIXED: SelectionArea makes Web version almost unusable (#31)
 
-## 0.4.8
+# 0.4.8
 
 - FIXED: Unhandled Exception: type 'Null' is not a subtype of type 'PdfPageRenderCancellationTokenPdfium' in type cast (#26)
 
-## 0.4.7
+# 0.4.7
 
 - FIXED: Android build broken? Cannot find libpdfium.so error (#25)
 - PdfViewerParams.loadingBannerBuilder to customize HTTP download progress
@@ -513,7 +574,7 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
   - Selection does not work as expected on mobile devices
 - Support Linux running on arm64 Raspberry PI (#23/#24)
 
-## 0.4.6
+# 0.4.6
 
 - Introduces PdfPage.render cancellation mechanism
   - PdfPageRenderCancellationToken to cancel the rendering process
@@ -525,7 +586,7 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
   - maxRealSizeImageCount default is 3
 - PdfViewerParams.scrollByArrowKey to enable keyboard navigation
 
-## 0.4.5
+# 0.4.5
 
 - PdfViewerParams updates
   - PdfViewerParams.onPageChanged replaces onPageChanged parameter on PdfViewer factories
@@ -534,26 +595,26 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
   - ETag check to invalidate the existing cache
   - Better downloaded region handling
 
-## 0.4.4
+# 0.4.4
 
 - PdfPage.render can render Annotations and FORMS
 - PdfFileCache: More realistic file cache mechanism
 - Introduces PasswordProvider to repeatedly test passwords (only API layer)
 
-## 0.4.3
+# 0.4.3
 
 - FIXED: cache mechanism is apparently broken (#12)
 
-## 0.4.2
+# 0.4.2
 
 - PdfViewerParams.pageOverlayBuilder to customize PDF page (#17)
 - Updating README.md
 
-## 0.4.1
+# 0.4.1
 
 - Add PdfViewerParams.enableRenderAnnotations to enable annotations on rendering (#18,#19)
 
-## 0.4.0
+# 0.4.0
 
 - Many breaking changes but they improve the code integrity:
   - PdfDocument.pages supersedes PdfDocument.getPage
@@ -562,16 +623,16 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
 - Add PdfPageAnchor.all
 - PdfViewerParams.viewerOverlayBuilder/PdfViewerScrollThumb to support scroll thumbs
 
-## 0.3.6
+# 0.3.6
 
 - PageLayout -> PdfPageLayout
 
-## 0.3.5
+# 0.3.5
 
 - PageLayout class change to ease page layout customization
   - Add example use case in API document
 
-## 0.3.4
+# 0.3.4
 
 - Rewriting page rendering code
   - Due to the internal structure change, page drawing customization parameters are once removed:
@@ -579,56 +640,56 @@ _NOTE: On pub.dev, 1.0.0+ versions gets [[ANALYSIS ISSUE]](https://pub.dev/packa
     - pageOverlaysBuilder
 - Example code does not enables enableTextSelection; it's still too experimental...
 
-## 0.3.3
+# 0.3.3
 
 - FIXED: Downloading of small PDF file causes internal loading error
 
-## 0.3.2
+# 0.3.2
 
 - Support mouse-wheel-to-scroll on Desktop platforms
 
-## 0.3.1
+# 0.3.1
 
 - Minor API changes
 - Internal integrity updates that controls the viewer behaviors
 - FIX: example code does not have android.permission.INTERNET on AndroidManifest.xml
 - PdfViewerParams.devicePixelRatioOverride is deprecated and introduces PdfViewerParams.getPageRenderingScale
 
-## 0.3.0
+# 0.3.0
 
 - Many renaming of the APIs that potentially breaks existing apps
 
-## 0.2.4
+# 0.2.4
 
 - Now uses plugin_ffi. (Not containing any Flutter plugin stab)
 
-## 0.2.3
+# 0.2.3
 
 - Fixed: #6 PdfPageWeb.render behavior is different from PdfPagePdfium.render
 
-## 0.2.2
+# 0.2.2
 
 - Explicitly specify Flutter 3.16/Dart 3.2 as NativeCallable.listener does not accept non-static function (#5)
 
-## 0.2.1
+# 0.2.1
 
 - Stabilizing API surface
   - Introducing PdfViewer.asset/file/uri/custom
   - PdfViewer has documentLoader to accept function to load PdfDocument
 - Fixes minor issues on PdfViewer
 
-## 0.2.0
+# 0.2.0
 
 - Introducing PdfDocument.openUri/PdfFileCache\* classes
 - Introducing PdfPermissions
 - PdfPage.loadText/PdfPageText for text extraction
 - Android NDK CMake to 3.18.1
 
-## 0.1.1
+# 0.1.1
 
 - Document updates
 - pdf.js 3.11.174
 
-## 0.1.0
+# 0.1.0
 
 - First release (Documentation is not yet ready)

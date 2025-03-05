@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  cross_file:
+    dependency: transitive
+    description:
+      name: cross_file
+      sha256: "7caf6a750a0c04effbb52a676dce9a4a592e10ad35c34d6d2d0e4811160d5670"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.4+2"
   crypto:
     dependency: transitive
     description:
@@ -73,6 +81,78 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.4"
+  file_selector:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: f125210f98fbdce571f41b797ef85a2e5786278e
+      url: "https://github.com/kumsumit/file_selector.git"
+    source: git
+    version: "1.0.3"
+  file_selector_android:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "402793d1d8288249c1628982597a9cfb343d54d1"
+      url: "https://github.com/kumsumit/file_selector_android.git"
+    source: git
+    version: "0.5.1+12"
+  file_selector_ios:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "71e02d9bee1bad5ca9dd55900280137bf1d825ea"
+      url: "https://github.com/kumsumit/file_selector_ios.git"
+    source: git
+    version: "0.5.3+1"
+  file_selector_linux:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "4204e4517b447d74b5cf59da44ff98272a1e314e"
+      url: "https://github.com/kumsumit/file_selector_linux.git"
+    source: git
+    version: "0.9.3+2"
+  file_selector_macos:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "3e7504630f1d6a63887a31283f0b586e4af9119d"
+      url: "https://github.com/kumsumit/file_selector_macos.git"
+    source: git
+    version: "0.9.4+2"
+  file_selector_platform_interface:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: d258f2572d9ab65df56a471041c5c6638188b4b8
+      url: "https://github.com/kumsumit/file_selector_platform_interface.git"
+    source: git
+    version: "2.6.2"
+  file_selector_web:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "8c3f9a9e8148956352b7c4cd6e6a320f6d6c99ed"
+      url: "https://github.com/kumsumit/file_selector_web.git"
+    source: git
+    version: "0.9.4+2"
+  file_selector_windows:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "1097ece0062ba085cf63bfe2bd482863e34ca5fa"
+      url: "https://github.com/kumsumit/file_selector_windows.git"
+    source: git
+    version: "0.9.3+3"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -249,7 +329,14 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "1.0.101"
+    version: "1.1.11"
+  pdfrx_wasm:
+    dependency: "direct main"
+    description:
+      path: "../../wasm/pdfrx_wasm"
+      relative: true
+    source: path
+    version: "1.1.6"
   platform:
     dependency: transitive
     description:
@@ -459,4 +546,4 @@ packages:
     version: "1.0.3"
 sdks:
   dart: ">=3.7.0 <4.0.0"
-  flutter: ">=3.24.0"
+  flutter: ">=3.29.0"

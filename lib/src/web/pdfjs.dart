@@ -3,28 +3,28 @@
 @JS()
 library;
 
+import 'dart:async';
 import 'dart:js_interop';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:synchronized/extension.dart';
 import 'package:web/web.dart' as web;
 
 import '../../pdfrx.dart';
+import 'js_utils.dart';
 
 /// Default pdf.js version
-const _pdfjsVersion = '4.5.136';
+const _pdfjsVersion = '4.10.38';
 
 /// Default pdf.js URL
-const _pdfjsUrl =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/$_pdfjsVersion/pdf.min.mjs';
+const _pdfjsUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@$_pdfjsVersion/build/pdf.min.mjs';
 
 /// Default pdf.worker.js URL
-const _pdfjsWorkerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/$_pdfjsVersion/pdf.worker.min.mjs';
+const _pdfjsWorkerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@$_pdfjsVersion/build/pdf.worker.min.mjs';
 
 /// Default CMap URL
-const _pdfjsCMapUrl =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/$_pdfjsVersion/cmaps/';
+const _pdfjsCMapUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@$_pdfjsVersion/cmaps/';
 
 @JS('pdfjsLib')
 external JSAny? get _pdfjsLib;
@@ -32,8 +32,7 @@ external JSAny? get _pdfjsLib;
 bool get _isPdfjsLoaded => _pdfjsLib != null;
 
 @JS('pdfjsLib.getDocument')
-external _PDFDocumentLoadingTask _pdfjsGetDocument(
-    _PdfjsDocumentInitParameters data);
+external _PDFDocumentLoadingTask _pdfjsGetDocument(_PdfjsDocumentInitParameters data);
 
 extension type _PdfjsDocumentInitParameters._(JSObject _) implements JSObject {
   external _PdfjsDocumentInitParameters({
@@ -81,24 +80,48 @@ Future<PdfjsDocument> pdfjsGetDocument(
         cMapUrl: PdfJsConfiguration.configuration?.cMapUrl ?? _pdfjsCMapUrl,
         cMapPacked: PdfJsConfiguration.configuration?.cMapPacked ?? true,
         useSystemFonts: PdfJsConfiguration.configuration?.useSystemFonts,
-        standardFontDataUrl:
-            PdfJsConfiguration.configuration?.standardFontDataUrl,
+        standardFontDataUrl: PdfJsConfiguration.configuration?.standardFontDataUrl,
       ),
     ).promise.toDart;
 
-Future<PdfjsDocument> pdfjsGetDocumentFromData(ByteBuffer data,
-        {String? password}) =>
-    _pdfjsGetDocument(
-      _PdfjsDocumentInitParameters(
-        data: data.toJS,
-        password: password,
-        cMapUrl: PdfJsConfiguration.configuration?.cMapUrl,
-        cMapPacked: PdfJsConfiguration.configuration?.cMapPacked,
-        useSystemFonts: PdfJsConfiguration.configuration?.useSystemFonts,
-        standardFontDataUrl:
-            PdfJsConfiguration.configuration?.standardFontDataUrl,
-      ),
-    ).promise.toDart;
+/// [allowDataOwnershipTransfer] is used to determine if the data buffer can be transferred to the worker thread.
+Future<PdfjsDocument> pdfjsGetDocumentFromData(
+  ByteBuffer data, {
+  String? password,
+  bool allowDataOwnershipTransfer = false,
+}) async {
+  if (!allowDataOwnershipTransfer) {
+    // We may need to duplicate the buffer if it is "technically transferrable".
+    if (data.isTechnicallyTransferrable) {
+      data = data.duplicate();
+    }
+  }
+
+  final result =
+      await _pdfjsGetDocument(
+        _PdfjsDocumentInitParameters(
+          data: data.toJS,
+          password: password,
+          cMapUrl: PdfJsConfiguration.configuration?.cMapUrl ?? _pdfjsCMapUrl,
+          cMapPacked: PdfJsConfiguration.configuration?.cMapPacked ?? true,
+          useSystemFonts: PdfJsConfiguration.configuration?.useSystemFonts,
+          standardFontDataUrl: PdfJsConfiguration.configuration?.standardFontDataUrl,
+        ),
+      ).promise.toDart;
+  return result;
+}
+
+extension _ByteBufferExtensions on ByteBuffer {
+  bool get isTechnicallyTransferrable {
+    if (!kIsWeb) throw UnsupportedError('This method is only available on web');
+    // if NOT running with Flutter WASM runtime, every ByteBuffer can be transferrable
+    if (!kIsWasm) return true;
+    // if running with Flutter WASM runtime, only JSArrayBufferImpl can be transferrable (I believe)
+    return runtimeType.toString() == 'JSArrayBufferImpl';
+  }
+
+  ByteBuffer duplicate() => Uint8List.fromList(asUint8List()).buffer;
+}
 
 extension type PdfjsDocument._(JSObject _) implements JSObject {
   external JSPromise<PdfjsPage> getPage(int pageNumber);
@@ -107,7 +130,7 @@ extension type PdfjsDocument._(JSObject _) implements JSObject {
   external void destroy();
 
   external JSPromise<JSNumber> getPageIndex(PdfjsRef ref);
-  external JSPromise<JSObject> getDestination(String id);
+  external JSPromise<JSObject?> getDestination(String id);
   external JSPromise<JSArray<PdfjsOutlineNode>?> getOutline();
 }
 
@@ -119,13 +142,10 @@ extension type PdfjsPage._(JSObject _) implements JSObject {
   external JSNumber get userUnit;
   external JSArray<JSNumber> get view;
 
-  external JSPromise<PdfjsTextContent> getTextContent(
-      PdfjsGetTextContentParameters params);
-  external ReadableStream streamTextContent(
-      PdfjsGetTextContentParameters params);
+  external JSPromise<PdfjsTextContent> getTextContent(PdfjsGetTextContentParameters params);
+  external ReadableStream streamTextContent(PdfjsGetTextContentParameters params);
 
-  external JSPromise<JSArray<PdfjsAnnotation>> getAnnotations(
-      PdfjsGetAnnotationsParameters params);
+  external JSPromise<JSArray<PdfjsAnnotation>> getAnnotations(PdfjsGetAnnotationsParameters params);
 }
 
 extension type PdfjsAnnotation._(JSObject _) implements JSObject {
@@ -147,42 +167,28 @@ extension type PdfjsViewportParams._(JSObject _) implements JSObject {
     bool? dontFlip,
   });
 
-  external double get scale;
-  external set scale(double scale);
-  external int? get rotation;
-  external set rotation(int? rotation);
-  external double? get offsetX;
-  external set offsetX(double? offsetX);
-  external double? get offsetY;
-  external set offsetY(double? offsetY);
-  external bool? get dontFlip;
-  external set dontFlip(bool? dontFlip);
+  external double scale;
+  external int rotation;
+  external double offsetX;
+  external double offsetY;
+  external bool dontFlip;
 }
 
 extension type PdfjsViewport(JSObject _) implements JSObject {
-  external JSArray<JSNumber> get viewBox;
-  external set viewBox(JSArray<JSNumber> viewBox);
+  external JSArray<JSNumber> viewBox;
 
-  external double get scale;
-  external set scale(double scale);
+  external double scale;
 
   /// 0, 90, 180, 270
-  external int? get rotation;
-  external set rotation(int? rotation);
-  external double? get offsetX;
-  external set offsetX(double? offsetX);
-  external double? get offsetY;
-  external set offsetY(double? offsetY);
-  external bool? get dontFlip;
-  external set dontFlip(bool? dontFlip);
+  external int rotation;
+  external double offsetX;
+  external double offsetY;
+  external bool dontFlip;
 
-  external double get width;
-  external set width(double w);
-  external double get height;
-  external set height(double h);
+  external double width;
+  external double height;
 
-  external JSArray<JSNumber>? get transform;
-  external set transform(JSArray<JSNumber>? m);
+  external JSArray<JSNumber>? transform;
 }
 
 extension type PdfjsRenderContext._(JSObject _) implements JSObject {
@@ -198,29 +204,19 @@ extension type PdfjsRenderContext._(JSObject _) implements JSObject {
     JSObject background,
   });
 
-  external web.CanvasRenderingContext2D get canvasContext;
-  external set canvasContext(web.CanvasRenderingContext2D ctx);
-  external PdfjsViewport get viewport;
-  external set viewport(PdfjsViewport viewport);
+  external web.CanvasRenderingContext2D canvasContext;
+  external PdfjsViewport viewport;
 
   /// `display` or `print`
-  external String get intent;
-
-  external set intent(String intent);
+  external String intent;
 
   /// DISABLE=0, ENABLE=1, ENABLE_FORMS=2, ENABLE_STORAGE=3
-  external int get annotationMode;
-  external set annotationMode(int annotationMode);
-  external bool get renderInteractiveForms;
-  external set renderInteractiveForms(bool renderInteractiveForms);
-  external JSArray<JSNumber>? get transform;
-  external set transform(JSArray<JSNumber>? transform);
-  external JSObject get imageLayer;
-  external set imageLayer(JSObject imageLayer);
-  external JSObject get canvasFactory;
-  external set canvasFactory(JSObject canvasFactory);
-  external JSObject get background;
-  external set background(JSObject background);
+  external int annotationMode;
+  external bool renderInteractiveForms;
+  external JSArray<JSNumber>? transform;
+  external JSObject imageLayer;
+  external JSObject canvasFactory;
+  external JSObject background;
 }
 
 extension type PdfjsRender._(JSObject _) implements JSObject {
@@ -228,10 +224,7 @@ extension type PdfjsRender._(JSObject _) implements JSObject {
 }
 
 extension type PdfjsGetTextContentParameters._(JSObject _) implements JSObject {
-  external PdfjsGetTextContentParameters({
-    bool includeMarkedContent,
-    bool disableNormalization,
-  });
+  external PdfjsGetTextContentParameters({bool includeMarkedContent, bool disableNormalization});
 
   external bool includeMarkedContent;
   external bool disableNormalization;
@@ -249,15 +242,17 @@ extension type PdfjsTextItem._(JSObject _) implements JSObject {
   /// Text direction: `ttb`, `ltr` or `rtl`.
   external String get dir;
 
-  /// Matrix for transformation, in the form [a b c d e f], equivalent to:
+  /// Matrix for transformation, in the form `[a, b, c, d, e, f]`, equivalent to:
   /// ```
   /// | a  b  0 |
   /// | c  d  0 |
   /// | e  f  1 |
   /// ```
   ///
-  /// Translation is performed with `[1 0 0 1 tx ty]`.
-  /// Scaling is performed with `[sx 0 0 sy 0 0]`.
+  /// Translation is performed with `[1, 0, 0, 1, tx, ty]`.
+  ///
+  /// Scaling is performed with `[sx, 0, 0, sy, 0, 0]`.
+  ///
   /// See PDF Reference 1.7, 4.2.2 Common Transformations for more.
   external JSArray<JSNumber> get transform;
   external num get width;
@@ -330,28 +325,45 @@ Future<void> ensurePdfjsInitialized() async {
       return;
     }
 
+    debugPrint(
+      'pdfrx Web status:\n'
+      '- Running WASM:      $kIsWasm\n'
+      '- SharedArrayBuffer: $isSharedArrayBufferSupported',
+    );
+    if (kIsWasm && !isSharedArrayBufferSupported) {
+      debugPrint(
+        'WARNING: SharedArrayBuffer is not enabled and WASM is running in single thread mode. Enable SharedArrayBuffer by setting the following HTTP header on your server:\n'
+        '  Cross-Origin-Embedder-Policy: require-corp|credentialless\n'
+        '  Cross-Origin-Opener-Policy: same-origin\n',
+      );
+    }
+
     final pdfJsSrc = PdfJsConfiguration.configuration?.pdfJsSrc ?? _pdfjsUrl;
+
+    final script =
+        web.document.createElement('script') as web.HTMLScriptElement
+          ..type = 'text/javascript'
+          ..charset = 'utf-8'
+          ..async = true
+          ..type = 'module'
+          ..src = pdfJsSrc;
+    web.document.querySelector('head')!.appendChild(script);
+    final completer = Completer();
+    final sub1 = script.onLoad.listen((_) => completer.complete());
+    final sub2 = script.onError.listen((event) => completer.completeError(event));
     try {
-      final script =
-          web.document.createElement('script') as web.HTMLScriptElement
-            ..type = 'text/javascript'
-            ..charset = 'utf-8'
-            ..async = true
-            ..type = 'module'
-            ..src = pdfJsSrc;
-      web.document.querySelector('head')!.appendChild(script);
-      await script.onLoad.first.timeout(
-          PdfJsConfiguration.configuration?.pdfJsDownloadTimeout ??
-              const Duration(seconds: 10));
+      await completer.future;
     } catch (e) {
       throw StateError('Failed to load pdf.js from $pdfJsSrc: $e');
+    } finally {
+      await sub1.cancel();
+      await sub2.cancel();
     }
 
     if (!_isPdfjsLoaded) {
       throw StateError('Failed to load pdfjs');
     }
-    _pdfjsWorkerSrc =
-        PdfJsConfiguration.configuration?.workerSrc ?? _pdfjsWorkerSrc;
+    _pdfjsWorkerSrc = PdfJsConfiguration.configuration?.workerSrc ?? _pdfjsWorkerSrc;
 
     _pdfjsInitialized = true;
   });

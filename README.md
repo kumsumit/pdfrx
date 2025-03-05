@@ -16,7 +16,7 @@ A [demo site](https://espresso3389.github.io/pdfrx/) using Flutter Web
 - Windows
 - macOS
 - Linux (even on Raspberry PI)
-- Web (\*using [PDF.js](https://mozilla.github.io/pdf.js/))
+- Web (\*using [PDF.js](https://mozilla.github.io/pdf.js/)) or Pdfium WASM (\*experimental)
 
 ## Example Code
 
@@ -52,15 +52,34 @@ Add this to your package's `pubspec.yaml` file and execute `flutter pub get`:
 
 ```yaml
 dependencies:
-  pdfrx: ^1.0.101
+  pdfrx: ^1.1.11
 ```
 
 ### Note for Windows
 
-Ensure your Windows installation enables _Developer Mode_.
+**Ensure your Windows installation enables [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development#activate-developer-mode).**
 
-The build process internally uses symbolic link and it requires Developer Mode to be enabled.
+The build process internally uses *symbolic links* and it requires Developer Mode to be enabled.
 Without this, you may encounter errors [like this](https://github.com/espresso3389/pdfrx/issues/34).
+
+### "Bleeding Edge" Pdfium WASM support on Web
+
+pdfrx now supports "bleeding edge" Pdfium WASM support on Web.
+This is still not production-ready, but you can try it by adding additional [pdfrx_wasm](https://pub.dartlang.org/packages/pdfrx_wasm) to your dependencies:
+
+```yaml
+dependencies:
+  pdfrx: ^1.1.11
+  pdfrx_wasm: ^1.1.6
+```
+
+And then, enable Pdfium WASM by adding the following line to somewhere that runs before calling any pdfrx functions (typically `main` function):
+
+```dart
+Pdfrx.webRuntimeType = PdfrxWebRuntimeType.pdfiumWasm;
+```
+
+The plugin, `pdfrx_wasm`, is a satellite plugin for `pdfrx` that contains files required to run Pdfium WASM. Because the WASM binary/support files are relatively large (about 4MB), it is not included in the main `pdfrx` package and you need to add `pdfrx_wasm` to your dependencies.
 
 ## Open PDF File
 
@@ -92,7 +111,7 @@ For more customization and considerations, see [Deal with Password Protected PDF
 
 ## Customizations/Features
 
-You can customize the behaviour and the viewer look and feel by configuring [PdfViewerParams](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams-class.html).
+You can customize the behaviors and the viewer look and feel by configuring [PdfViewerParams](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams-class.html).
 
 ### Text Selection
 

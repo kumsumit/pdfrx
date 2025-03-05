@@ -29,13 +29,11 @@ class PdfViewerScrollThumb extends StatefulWidget {
   final double margin;
 
   /// Function to customize the thumb widget.
-  final Widget? Function(BuildContext context, Size thumbSize, int? pageNumber,
-      PdfViewerController controller)? thumbBuilder;
+  final Widget? Function(BuildContext context, Size thumbSize, int? pageNumber, PdfViewerController controller)?
+  thumbBuilder;
 
   /// Determine whether the orientation is vertical or not.
-  bool get isVertical =>
-      orientation == ScrollbarOrientation.left ||
-      orientation == ScrollbarOrientation.right;
+  bool get isVertical => orientation == ScrollbarOrientation.left || orientation == ScrollbarOrientation.right;
 
   @override
   State<PdfViewerScrollThumb> createState() => _PdfViewerScrollThumbState();
@@ -48,9 +46,7 @@ class _PdfViewerScrollThumbState extends State<PdfViewerScrollThumb> {
     if (!widget.controller.isReady) {
       return const SizedBox();
     }
-    return widget.isVertical
-        ? _buildVertical(context)
-        : _buildHorizontal(context);
+    return widget.isVertical ? _buildVertical(context) : _buildHorizontal(context);
   }
 
   Widget _buildVertical(BuildContext context) {
@@ -62,37 +58,28 @@ class _PdfViewerScrollThumbState extends State<PdfViewerScrollThumb> {
     final vh = view.height * widget.controller.currentZoom - thumbSize.height;
     final top = y * vh;
     return Positioned(
-      left: widget.orientation == ScrollbarOrientation.left
-          ? widget.margin
-          : null,
-      right: widget.orientation == ScrollbarOrientation.right
-          ? widget.margin
-          : null,
+      left: widget.orientation == ScrollbarOrientation.left ? widget.margin : null,
+      right: widget.orientation == ScrollbarOrientation.right ? widget.margin : null,
       top: top,
       width: thumbSize.width,
       height: thumbSize.height,
       child: GestureDetector(
-        child: widget.thumbBuilder?.call(
-              context,
-              thumbSize,
-              widget.controller.pageNumber,
-              widget.controller,
-            ) ??
+        child:
+            widget.thumbBuilder?.call(context, thumbSize, widget.controller.pageNumber, widget.controller) ??
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha:0.5),
+                    color: Colors.black.withAlpha(127),
                     spreadRadius: 1,
                     blurRadius: 1,
                     offset: const Offset(1, 1),
                   ),
                 ],
               ),
-              child:
-                  Center(child: Text(widget.controller.pageNumber.toString())),
+              child: Center(child: Text(widget.controller.pageNumber.toString())),
             ),
         onPanStart: (details) {
           _panStartOffset = top - details.localPosition.dy;
@@ -116,32 +103,28 @@ class _PdfViewerScrollThumbState extends State<PdfViewerScrollThumb> {
     final vw = view.width * widget.controller.currentZoom - thumbSize.width;
     final left = x * vw;
     return Positioned(
-      top:
-          widget.orientation == ScrollbarOrientation.top ? widget.margin : null,
-      bottom: widget.orientation == ScrollbarOrientation.bottom
-          ? widget.margin
-          : null,
+      top: widget.orientation == ScrollbarOrientation.top ? widget.margin : null,
+      bottom: widget.orientation == ScrollbarOrientation.bottom ? widget.margin : null,
       left: left,
       width: thumbSize.width,
       height: thumbSize.height,
       child: GestureDetector(
-        child: widget.thumbBuilder?.call(context, thumbSize,
-                widget.controller.pageNumber, widget.controller) ??
+        child:
+            widget.thumbBuilder?.call(context, thumbSize, widget.controller.pageNumber, widget.controller) ??
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: .5),
+                    color: Colors.black.withAlpha(127),
                     spreadRadius: 1,
                     blurRadius: 1,
                     offset: const Offset(1, 1),
                   ),
                 ],
               ),
-              child:
-                  Center(child: Text(widget.controller.pageNumber.toString())),
+              child: Center(child: Text(widget.controller.pageNumber.toString())),
             ),
         onPanStart: (details) {
           _panStartOffset = left - details.localPosition.dx;
