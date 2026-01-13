@@ -1,136 +1,278 @@
 # pdfrx
 
-This repository contains multiple Dart/Flutter packages for PDF rendering, viewing, and manipulation:
+[![Build Test](https://github.com/espresso3389/pdfrx/actions/workflows/build-test.yml/badge.svg)](https://github.com/espresso3389/pdfrx/actions/workflows/build-test.yml)
 
-## Packages
+[pdfrx](https://pub.dartlang.org/packages/pdfrx) is a rich and fast PDF viewer and manipulation plugin for Flutter. It provides ready-to-use widgets for displaying and editing PDF documents, including page manipulation, document combining, and image import in your Flutter applications.
 
-### [pdfrx_engine](https://pub.dev/packages/pdfrx_engine)
+This plugin is built on top of [pdfrx_engine](https://pub.dartlang.org/packages/pdfrx_engine), which handles the low-level PDF rendering and manipulation using [PDFium](https://pdfium.googlesource.com/pdfium/). The separation allows for a clean architecture where:
 
-A platform-agnostic PDF rendering and manipulation API built on top of [PDFium](https://pdfium.googlesource.com/pdfium/).
+- **pdfrx** (this package) - Provides Flutter widgets, UI components, platform integration, and PDF editing features (page manipulation, combining, image import)
+- **pdfrx_engine** - Handles PDF parsing, rendering, and manipulation without Flutter dependencies
 
-- Pure Dart package (no Flutter dependencies)
-- Provides low-level PDF document API for viewing and editing
-- Supports page re-arrangement, PDF combining, image import, and document manipulation
-- Can be used in CLI applications or non-Flutter Dart projects
-- Supports all platforms: Android, iOS, Windows, macOS, Linux
+The plugin supports Android, iOS, Windows, macOS, Linux, and Web.
 
-[View repo](packages/pdfrx_engine/) | [API reference](https://pub.dev/documentation/pdfrx_engine/latest/)
+## Interactive Demo
 
-### [pdfrx](https://pub.dev/packages/pdfrx)
+A [demo site](https://espresso3389.github.io/pdfrx/) using Flutter Web
 
-A cross-platform PDF viewer and manipulation plugin for Flutter.
+![pdfrx](https://github.com/espresso3389/pdfrx/assets/1311400/b076ac0b-e2cb-48f0-8772-9891537ade7b)
 
-- Flutter plugin with UI widgets
-- Built on top of [pdfrx_engine](https://pub.dev/packages/pdfrx_engine)
-- Provides high-level viewer widgets and overlays
-- Includes text selection, search, zoom controls, and more
-- Supports PDF editing features like page manipulation, document combining, and image import
+## Multi-platform support
 
-[View repo](packages/pdfrx/) | [API reference](https://pub.dev/documentation/pdfrx/latest/)
+- Android
+- iOS
+- Windows
+- macOS
+- Linux (even on Raspberry Pi)
+- Web (WASM)
 
-### [pdfrx_coregraphics](https://pub.dev/packages/pdfrx_coregraphics)
+## Example Code
 
-**⚠️ EXPERIMENTAL** - CoreGraphics-backed renderer for [pdfrx](https://pub.dev/packages/pdfrx) on iOS/macOS.
+The following fragment illustrates the easiest way to show a PDF file in assets:
 
-- Uses PDFKit/CoreGraphics instead of [PDFium](https://pdfium.googlesource.com/pdfium/) on Apple platforms
-- Drop-in replacement for teams preferring the system PDF stack
-- Maintains full compatibility with [pdfrx](https://pub.dev/packages/pdfrx) widget API
-- iOS and macOS only
+```dart
+import 'package:pdfrx/pdfrx.dart';
 
-[View repo](packages/pdfrx_coregraphics/) | [API reference](https://pub.dev/documentation/pdfrx_coregraphics/latest/)
+...
 
-### [pdfium_dart](https://pub.dev/packages/pdfium_dart)
+class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pdfrx example'),
+        ),
+        body: PdfViewer.asset('assets/hello.pdf'),
+      ),
+    );
+  }
+}
+```
 
-Low-level Dart FFI bindings for the [PDFium](https://pdfium.googlesource.com/pdfium/) library.
-
-- Pure Dart package with auto-generated FFI bindings using [ffigen](https://pub.dev/packages/ffigen)
-- Provides direct access to PDFium's C API from Dart
-- Includes [getPdfium()](https://pub.dev/documentation/pdfium_dart/latest/pdfium_dart/getPdfium.html) function that downloads PDFium binaries on demand
-- Used as a foundation by higher-level packages
-
-[View repo](packages/pdfium_dart/) | [API reference](https://pub.dev/documentation/pdfium_dart/latest/)
-
-### [pdfium_flutter](https://pub.dev/packages/pdfium_flutter)
-
-Flutter FFI plugin for loading [PDFium](https://pdfium.googlesource.com/pdfium/) native libraries.
-
-- Bundles pre-built PDFium binaries for all Flutter platforms (Android, iOS, Windows, macOS, Linux)
-- Provides utilities for loading PDFium at runtime
-- Re-exports [pdfium_dart](https://pub.dev/packages/pdfium_dart) FFI bindings
-- Simplifies PDFium integration in Flutter applications
-
-[View repo](packages/pdfium_flutter/) | [API reference](https://pub.dev/documentation/pdfium_flutter/latest/)
-
-## When to Use Which Package
-
-- **Use [pdfrx](https://pub.dev/packages/pdfrx)** if you're building a Flutter application and need PDF viewing and manipulation capabilities with UI
-- **Use [pdfrx_engine](https://pub.dev/packages/pdfrx_engine)** if you need PDF rendering and manipulation without Flutter dependencies (e.g., server-side PDF processing, CLI tools, PDF combining utilities)
-- **Use [pdfrx_coregraphics](https://pub.dev/packages/pdfrx_coregraphics)** (experimental) if you want to use CoreGraphics/PDFKit instead of [PDFium](https://pdfium.googlesource.com/pdfium/) on iOS/macOS
-- **Use [pdfium_dart](https://pub.dev/packages/pdfium_dart)** if you need low-level PDFium FFI bindings for Dart projects or want on-demand PDFium binary downloads
-- **Use [pdfium_flutter](https://pub.dev/packages/pdfium_flutter)** if you're building a Flutter plugin that needs PDFium integration with bundled binaries
+Anyway, please follow the instructions below to install on your environment.
 
 ## Getting Started
 
-### For Flutter Applications
+### Installation
 
-Add [pdfrx](https://pub.dev/packages/pdfrx) to your `pubspec.yaml`:
-
-```yaml
-dependencies:
-  pdfrx: ^2.2.15
-```
-
-### For Pure Dart Applications
-
-Add [pdfrx_engine](https://pub.dev/packages/pdfrx_engine) to your `pubspec.yaml`:
+Add this to your package's `pubspec.yaml` file and execute `flutter pub get`:
 
 ```yaml
 dependencies:
-  pdfrx_engine: ^0.3.0
+  pdfrx: ^2.2.20
 ```
 
-## Documentation
+**Note:** You only need to add `pdfrx` to your dependencies. The `pdfrx_engine` package is automatically included as a dependency of `pdfrx`.
 
-Comprehensive documentation is available in the [doc/](doc/) directory, including:
+### Initialization
 
-- Getting started guides
-- Feature tutorials
-- Platform-specific configurations
-- Code examples
+If you access the document API directly (for example, opening a [PdfDocument](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocument-class.html) before any pdfrx widget is built), call [pdfrxFlutterInitialize](https://pub.dev/documentation/pdfrx/latest/pdfrx/pdfrxFlutterInitialize.html) once during app startup:
 
-## Development
+```dart
+import 'package:flutter/widgets.dart';
+import 'package:pdfrx/pdfrx.dart';
 
-This is a monorepo managed with pub workspaces. Just do `dart pub get` on some directory inside the repo to obtain all the dependencies.
+Future<void> main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  pdfrxFlutterInitialize(); // Required when using engine APIs before widgets
+  runApp(const MyApp());
+}
+```
 
-## Example Applications
+For more information, see [pdfrx Initialization](https://github.com/espresso3389/pdfrx/blob/master/doc/pdfrx-Initialization.md)
 
-### PDF Viewer
+Tip: To silence debug-time WASM warnings, call `pdfrxFlutterInitialize(dismissPdfiumWasmWarnings: true)` during startup.
 
-The example viewer application is located in [packages/pdfrx/example/viewer/](packages/pdfrx/example/viewer/). It demonstrates the full capabilities of the [pdfrx](https://pub.dev/packages/pdfrx) Flutter plugin.
+### Note for Windows
+
+**REQUIRED: You must enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development#activate-developer-mode) to build pdfrx on Windows.**
+
+The build process uses *symbolic links* which requires Developer Mode to be enabled. If Developer Mode is not enabled:
+
+- The build will fail with an error message
+- You will see a link to Microsoft's official instructions
+- You must enable Developer Mode and restart your computer before building
+
+Please follow Microsoft's official guide to enable Developer Mode as the exact steps may vary depending on your Windows version.
+
+## Note for Building Release Builds
+
+*Please note that the section is not applicable to Web.*
+
+Because the plugin contains WASM binaries as its assets and they increase the size of the app regardless of the platform.
+This is normally OK for development or debugging but you may want to remove them when building release builds.
+
+To do this, do `dart run pdfrx:remove_wasm_modules` between `flutter pub get` and `flutter build ...` on your app project's root directory:
 
 ```bash
-cd packages/pdfrx/example/viewer
-flutter run
+flutter pub get
+dart run pdfrx:remove_wasm_modules
+flutter build ...
 ```
 
-### PDF Combine
-
-The [packages/pdfrx/example/pdf_combine/](packages/pdfrx/example/pdf_combine/) application demonstrates PDF page manipulation and combining features:
-
-- Drag-and-drop interface for page re-arrangement
-- Visual thumbnails of PDF pages
-- Support for combining multiple PDF documents
-- Platform file drag-and-drop support
+To restore the WASM binaries, run the following command:
 
 ```bash
-cd packages/pdfrx/example/pdf_combine
-flutter run
+dart run pdfrx:remove_wasm_modules --revert
 ```
 
-## Contributing
+## Note for iOS/macOS: Using CoreGraphics Instead of PDFium
 
-Contributions are welcome! Please read the individual package READMEs for specific development guidelines.
+For iOS and macOS apps, you can optionally use [pdfrx_coregraphics](https://pub.dev/packages/pdfrx_coregraphics) to render PDFs with Apple's native CoreGraphics/PDFKit instead of the bundled PDFium library. This can significantly reduce your app size by removing PDFium dependencies on Darwin platforms.
 
-## License
+**⚠️ Note: `pdfrx_coregraphics` is experimental and has some limitations. See the [package documentation](https://pub.dev/packages/pdfrx_coregraphics#limitations) for details.**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+To use CoreGraphics rendering:
+
+1. Add `pdfrx_coregraphics` to your dependencies
+2. Set the CoreGraphics entry functions before initializing pdfrx
+3. Optionally remove PDFium dependencies to reduce app size
+
+For complete installation instructions and app size reduction steps, see the [pdfrx_coregraphics README](https://pub.dev/packages/pdfrx_coregraphics).
+
+## PdfViewer constructors
+
+For opening PDF files from various sources, there are several constructors available in [PdfViewer](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer-class.html):
+
+- [PdfViewer.asset](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer/PdfViewer.asset.html) - Load from Flutter assets
+- [PdfViewer.file](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer/PdfViewer.file.html) - Load from local file
+- [PdfViewer.data](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer/PdfViewer.data.html) - Load from memory (Uint8List)
+- [PdfViewer.uri](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer/PdfViewer.uri.html) - Load from network URL
+
+## Customizations/Features
+
+You can customize the behaviors and the viewer look and feel by configuring [PdfViewerParams](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams-class.html).
+
+```dart
+PdfViewer.asset(
+  'assets/test.pdf',
+  params: const PdfViewerParams(
+    scrollPhysics: FixedOverscrollPhysics(maxOverscroll: 120),
+    scrollPhysicsScale: BouncingScrollPhysics(),
+  ),
+);
+```
+
+The `scrollPhysics` and `scrollPhysicsScale` hooks let you plug in your own [ScrollPhysics](https://api.flutter.dev/flutter/widgets/ScrollPhysics-class.html) (or the bundled [FixedOverscrollPhysics](https://pub.dev/documentation/pdfrx/latest/pdfrx/FixedOverscrollPhysics-class.html)) to tune drag and zoom behavior per platform.
+
+## Deal with Password Protected PDF Files
+
+```dart
+PdfViewer.asset(
+  'assets/test.pdf',
+  // The easiest way to supply a password
+  passwordProvider: () => createSimplePasswordProvider('password'),
+
+  ...
+),
+```
+
+See [Deal with Password Protected PDF Files using PasswordProvider](https://github.com/espresso3389/pdfrx/blob/master/doc/Deal-with-Password-Protected-PDF-Files-using-PasswordProvider.md) for more information.
+
+### Text Selection
+
+The text selection feature is enabled by default, allowing users to select text in the PDF viewer. You can customize the text selection behavior using [PdfTextSelectionParams](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfTextSelectionParams-class.html).
+
+The following example shows how to disable text selection in the PDF viewer:
+
+```dart
+PdfViewer.asset(
+  'assets/test.pdf',
+  params: PdfViewerParams(
+    textSelectionParams: PdfTextSelectionParams(
+      enabled: false,
+      ...
+    ),
+  ),
+  ...
+),
+```
+
+The text selection feature supports various customizations, such as:
+
+- Context Menu Customization using [PdfViewerParams.buildContextMenu](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams/buildContextMenu.html)
+- Text Selection Magnifier Customization using [PdfTextSelectionParams.magnifier](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfTextSelectionParams/magnifier.html)
+
+For more text selection customization, see [Text Selection](https://github.com/espresso3389/pdfrx/blob/master/doc/Text-Selection.md).
+
+### PDF Feature Support
+
+- [PDF Link Handling](https://github.com/espresso3389/pdfrx/blob/master/doc/PDF-Link-Handling.md)
+- [Document Outline (a.k.a Bookmarks)](https://github.com/espresso3389/pdfrx/blob/master/doc/Document-Outline-(a.k.a-Bookmarks).md)
+- [Text Search](https://github.com/espresso3389/pdfrx/blob/master/doc/Text-Search.md)
+
+### Viewer Customization
+
+- [Page Layout (Horizontal Scroll View/Facing Pages)](https://github.com/espresso3389/pdfrx/blob/master/doc/Page-Layout-Customization.md)
+- [Showing Scroll Thumbs](https://github.com/espresso3389/pdfrx/blob/master/doc/Showing-Scroll-Thumbs.md)
+- [Dark/Night Mode Support](https://github.com/espresso3389/pdfrx/blob/master/doc/Dark-Night-Mode-Support.md)
+- [Document Loading Indicator](https://github.com/espresso3389/pdfrx/blob/master/doc/Document-Loading-Indicator.md)
+- [Viewer Customization using Widget Overlay](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams/viewerOverlayBuilder.html)
+- [Custom Scroll Physics for Drag/Zoom](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams/scrollPhysics.html)
+
+### Additional Customizations
+
+- [Double-tap to Zoom](https://github.com/espresso3389/pdfrx/blob/master/doc/Double-tap-to-Zoom.md)
+- [Adding Page Number on Page Bottom](https://github.com/espresso3389/pdfrx/blob/master/doc/Adding-Page-Number-on-Page-Bottom.md)
+- [Per-page Customization using Widget Overlay](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams/pageOverlaysBuilder.html)
+- [Per-page Customization using Canvas](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewerParams/pagePaintCallbacks.html)
+
+## Additional Widgets
+
+### PdfDocumentViewBuilder/PdfPageView
+
+[PdfPageView](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfPageView-class.html) is just another PDF widget that shows only one page. It accepts [PdfDocument](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocument-class.html) and page number to show a page within the document.
+
+[PdfDocumentViewBuilder](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocumentViewBuilder-class.html) is used to safely manage [PdfDocument](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocument-class.html) inside widget tree and it accepts `builder` parameter that creates child widgets.
+
+The following fragment is a typical use of these widgets:
+
+```dart
+PdfDocumentViewBuilder.asset(
+  'asset/test.pdf',
+  builder: (context, document) => ListView.builder(
+    itemCount: document?.pages.length ?? 0,
+    itemBuilder: (context, index) {
+      return Container(
+        margin: const EdgeInsets.all(8),
+        height: 240,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 220,
+              child: PdfPageView(
+                document: document,
+                pageNumber: index + 1,
+                alignment: Alignment.center,
+              ),
+            ),
+            Text(
+              '${index + 1}',
+            ),
+          ],
+        ),
+      );
+    },
+  ),
+),
+```
+
+## PdfDocument Management
+
+[PdfDocumentViewBuilder](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocumentViewBuilder-class.html) can accept [PdfDocumentRef](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocumentRef-class.html) from [PdfViewer](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer-class.html) to safely share the same [PdfDocument](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocument-class.html) instance. For more information, see [`example/viewer/lib/thumbnails_view.dart`](example/viewer/lib/thumbnails_view.dart).
+
+## API Documentation
+
+### Flutter Widgets (pdfrx)
+
+- [PdfViewer](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer-class.html) - Main PDF viewer widget
+- [PdfDocumentViewBuilder](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfDocumentViewBuilder-class.html) - Builder for safe async document loading
+- [PdfPageView](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfPageView-class.html) - Single page display widget
+
+### Low-Level PDF API (pdfrx_engine)
+
+For advanced use cases requiring direct PDF manipulation without Flutter widgets, see the [pdfrx_engine API reference](https://pub.dev/documentation/pdfrx_engine/latest/). This includes:
+
+- [PdfDocument](https://pub.dev/documentation/pdfrx_engine/latest/pdfrx_engine/PdfDocument-class.html) - Core document interface
+- [PdfPage](https://pub.dev/documentation/pdfrx_engine/latest/pdfrx_engine/PdfPage-class.html) - Page rendering and manipulation

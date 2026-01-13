@@ -1,4 +1,0 @@
-.build/
-**.xcframework/
-*.zip
-.pdfium_hash
