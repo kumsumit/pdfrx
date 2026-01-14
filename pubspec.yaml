@@ -4,6 +4,7 @@ version: 2.2.24
 homepage: https://github.com/espresso3389/pdfrx
 repository: https://github.com/espresso3389/pdfrx/tree/master/packages/pdfrx
 issue_tracker: https://github.com/espresso3389/pdfrx/issues
+publish_to: none
 screenshots:
   - description: 'Viewer example on Web'
     path: screenshot.jpg
@@ -13,8 +14,10 @@ environment:
   flutter: '>=3.35.1'
 
 dependencies:
-  pdfrx_engine: ^0.3.9
-  pdfium_flutter: ^0.1.8
+  pdfrx_engine:
+    git : https://github.com/kumsumit/pdfrx_engine.git
+  pdfium_flutter:
+    git : https://github.com/kumsumit/pdfium_flutter.git
   collection:
   crypto: ^3.0.6
   ffi:
