@@ -7,12 +7,15 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
+import 'package:pdfrx_engine/pdfrx_engine.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:synchronized/extension.dart';
 import 'package:vector_math/vector_math_64.dart' as vec;
 
-import '../../pdfrx.dart';
+import '../pdf_document_ref.dart';
+import '../pdfrx_flutter.dart';
 import '../utils/edge_insets_extensions.dart';
 import '../utils/platform.dart';
 import 'interactive_viewer.dart' as iv;
@@ -20,6 +23,11 @@ import 'internals/pdf_error_widget.dart';
 import 'internals/pdf_viewer_key_handler.dart';
 import 'internals/widget_size_sniffer.dart';
 import 'pdf_page_links_overlay.dart';
+import 'pdf_viewer_layout_metrics.dart';
+import 'pdf_viewer_params.dart';
+import 'scroll_interaction/pdf_viewer_scroll_interaction_delegate.dart';
+import 'sizing/pdf_viewer_size_delegate.dart';
+import 'zoom_steps/pdf_viewer_zoom_steps_delegate.dart';
 
 /// A widget to display PDF document.
 ///
@@ -35,12 +43,14 @@ class PdfViewer extends StatefulWidget {
   ///
   /// - [documentRef] is the [PdfDocumentRef].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
   const PdfViewer(
     this.documentRef, {
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
   });
@@ -52,6 +62,7 @@ class PdfViewer extends StatefulWidget {
   /// - [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
   PdfViewer.asset(
@@ -61,6 +72,7 @@ class PdfViewer extends StatefulWidget {
     bool useProgressiveLoading = true,
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
   }) : documentRef = PdfDocumentRefAsset(
@@ -77,6 +89,7 @@ class PdfViewer extends StatefulWidget {
   /// - [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
   PdfViewer.file(
@@ -86,6 +99,7 @@ class PdfViewer extends StatefulWidget {
     bool useProgressiveLoading = true,
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
   }) : documentRef = PdfDocumentRefFile(
@@ -102,9 +116,11 @@ class PdfViewer extends StatefulWidget {
   /// - [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
-  /// - [preferRangeAccess] to prefer range access to download the PDF. The default is false. (Not supported on Web).
+  /// - [preferRangeAccess] to prefer range access to download the PDF. The default is false.
+  ///   On Web, the server must be CORS-enabled and support range requests.
   /// - [headers] is used to specify additional HTTP headers especially for authentication/authorization.
   /// - [withCredentials] is used to specify whether to include credentials in the request (Only supported on Web).
   /// - [timeout] is the timeout duration for loading the document. (Only supported on non-Web platforms).
@@ -115,6 +131,7 @@ class PdfViewer extends StatefulWidget {
     bool useProgressiveLoading = true,
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
     bool preferRangeAccess = false,
@@ -141,6 +158,7 @@ class PdfViewer extends StatefulWidget {
   /// - [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
   PdfViewer.data(
@@ -151,6 +169,7 @@ class PdfViewer extends StatefulWidget {
     bool useProgressiveLoading = true,
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
   }) : documentRef = PdfDocumentRefData(
@@ -171,6 +190,7 @@ class PdfViewer extends StatefulWidget {
   /// - [firstAttemptByEmptyPassword] is used to determine whether the first attempt to open the PDF is by empty password
   /// or not. For more info, see [PdfPasswordProvider].
   /// - [controller] is the controller to control the viewer.
+  /// - [fontManager] is the font manager to handle missing fonts.
   /// - [params] is the parameters to customize the viewer.
   /// - [initialPageNumber] is the page number to show initially.
   PdfViewer.custom({
@@ -182,6 +202,7 @@ class PdfViewer extends StatefulWidget {
     bool useProgressiveLoading = true,
     super.key,
     this.controller,
+    this.fontManager,
     this.params = const PdfViewerParams(),
     this.initialPageNumber = 1,
   }) : documentRef = PdfDocumentRefCustom(
@@ -199,6 +220,9 @@ class PdfViewer extends StatefulWidget {
   /// Controller to control the viewer.
   final PdfViewerController? controller;
 
+  /// Font manager to handle font loading/substitution for missing fonts.
+  final PdfFontManager? fontManager;
+
   /// Parameters to customize the display of the PDF document.
   final PdfViewerParams params;
 
@@ -210,7 +234,7 @@ class PdfViewer extends StatefulWidget {
 }
 
 class _PdfViewerState extends State<PdfViewer>
-    with SingleTickerProviderStateMixin
+    with TickerProviderStateMixin
     implements PdfTextSelectionDelegate, PdfViewerCoordinateConverter {
   PdfViewerController? _controller;
   late final _txController = _PdfViewerTransformationController(this);
@@ -221,18 +245,17 @@ class _PdfViewerState extends State<PdfViewer>
   PdfDocument? _document;
   PdfPageLayout? _layout;
   Size? _viewSize;
-  double? _coverScale;
-  double? _alternativeFitScale;
-  static const _defaultMinScale = 0.1;
-  double _minScale = _defaultMinScale;
+  late PdfViewerLayoutMetrics _layoutMetrics;
   int? _pageNumber;
   bool _initialized = false;
   bool _usingScrollPercentageMode = false;
 
   StreamSubscription<PdfDocumentEvent>? _documentSubscription;
+  PdfFontManagerAssociation? _fontManagerAssociation;
+  PdfFontManager? _associatedFontManager;
   final _interactiveViewerKey = GlobalKey<iv.InteractiveViewerState>();
 
-  final List<double> _zoomStops = [1.0];
+  List<double> _zoomStops = const [1.0];
 
   final _imageCache = _PdfPageImageCache();
   final _magnifierImageCache = _PdfPageImageCache();
@@ -283,18 +306,64 @@ class _PdfViewerState extends State<PdfViewer>
   // the viewport
   EdgeInsets _adjustedBoundaryMargins = EdgeInsets.zero;
 
+  PdfViewerScrollInteractionDelegate? _interactionDelegate;
+
+  PdfViewerSizeDelegate? _sizeDelegate;
+  PdfViewerZoomStepsDelegate? _zoomStepsDelegate;
+
   @override
   void initState() {
     super.initState();
+    SemanticsBinding.instance.addSemanticsEnabledListener(_onSemanticsEnabledChanged);
     pdfrxFlutterInitialize();
     _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
     _widgetUpdated(null);
+    _updateInteractionDelegate();
+    _updateSizeDelegate();
+    _updateZoomStepsDelegate();
+
+    // Initialize metrics with default/current state
+    // (Layout is null here, so it will return defaults)
+    _recalculateMetrics();
   }
 
   @override
   void didUpdateWidget(covariant PdfViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     _widgetUpdated(oldWidget);
+    if (widget.params.interactionDelegateProvider != oldWidget.params.interactionDelegateProvider) {
+      _updateInteractionDelegate();
+    }
+    if (widget.params.sizeDelegateProvider != oldWidget.params.sizeDelegateProvider) {
+      _updateSizeDelegate();
+    }
+    if (widget.params.zoomStepsDelegateProvider != oldWidget.params.zoomStepsDelegateProvider) {
+      _updateZoomStepsDelegate();
+    }
+    if (!identical(widget.fontManager, oldWidget.fontManager)) {
+      _updateFontManagerAssociation();
+    }
+  }
+
+  void _updateInteractionDelegate() {
+    _interactionDelegate?.dispose();
+    _interactionDelegate = widget.params.interactionDelegateProvider.create();
+    if (_controller != null) {
+      _interactionDelegate!.init(_controller!, this);
+    }
+  }
+
+  void _updateSizeDelegate() {
+    _sizeDelegate?.dispose();
+    _sizeDelegate = widget.params.getSizeDelegateProvider().create();
+    if (_controller != null) {
+      _sizeDelegate!.init(_controller!);
+    }
+  }
+
+  void _updateZoomStepsDelegate() {
+    _zoomStepsDelegate?.dispose();
+    _zoomStepsDelegate = widget.params.zoomStepsDelegateProvider.create();
   }
 
   Future<void> _widgetUpdated(PdfViewer? oldWidget) async {
@@ -312,6 +381,12 @@ class _PdfViewerState extends State<PdfViewer>
       return;
     } else {
       oldWidget?.documentRef.resolveListenable().removeListener(_onDocumentChanged);
+      final documentRef = widget.documentRef;
+      await pdfrxFlutterInitialize();
+      await widget.fontManager?.prepare();
+      if (!mounted || !identical(documentRef, widget.documentRef)) {
+        return;
+      }
       widget.documentRef.resolveListenable()
         ..addListener(_onDocumentChanged)
         ..load();
@@ -321,9 +396,18 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   void _onDocumentChanged() async {
+    // Skip full reset if the document reference hasn't actually changed.
+    // PdfDocumentListenable._progress() calls notifyListeners() on every
+    // downloaded HTTP chunk during range-access loading. Without this guard,
+    // each chunk triggers a full reset (releaseAllImages, _initialized=false),
+    // causing visible pages to flash white hundreds of times.
+    final currentDoc = widget.documentRef.resolveListenable().document;
+    if (currentDoc != null && currentDoc == _document) return;
+
     _layout = null;
     _documentSubscription?.cancel();
     _documentSubscription = null;
+    _clearFontManagerAssociation();
     _textSelectionChangedDebounceTimer?.cancel();
     _stopInteraction();
     _imageCache.releaseAllImages();
@@ -357,6 +441,9 @@ class _PdfViewerState extends State<PdfViewer>
     _controller!._attach(this);
     _txController.addListener(_onMatrixChanged);
     _documentSubscription = document.events.listen(_onDocumentEvent);
+    _interactionDelegate?.init(_controller!, this);
+    _sizeDelegate?.init(_controller!);
+    _updateFontManagerAssociation();
 
     if (mounted) {
       setState(() {});
@@ -391,8 +478,13 @@ class _PdfViewerState extends State<PdfViewer>
 
   @override
   void dispose() {
+    SemanticsBinding.instance.removeSemanticsEnabledListener(_onSemanticsEnabledChanged);
+    _interactionDelegate?.dispose();
+    _sizeDelegate?.dispose();
+    _zoomStepsDelegate?.dispose();
     focusReportForPreventingContextMenuWeb(this, false);
     _documentSubscription?.cancel();
+    _clearFontManagerAssociation();
     _textSelectionChangedDebounceTimer?.cancel();
     _interactionEndedTimer?.cancel();
     _imageCache.cancelAllPendingRenderings();
@@ -408,7 +500,35 @@ class _PdfViewerState extends State<PdfViewer>
     super.dispose();
   }
 
+  void _onSemanticsEnabledChanged() => _invalidate();
+
   void _onMatrixChanged() => _invalidate();
+
+  void _updateFontManagerAssociation() {
+    final fontManager = widget.fontManager;
+    if (identical(_associatedFontManager, fontManager)) {
+      return;
+    }
+    _clearFontManagerAssociation();
+    if (fontManager != null && _controller != null) {
+      unawaited(
+        fontManager.prepare().then((_) {
+          if (!mounted || !identical(widget.fontManager, fontManager) || _controller == null || _document == null) {
+            return;
+          }
+          _clearFontManagerAssociation();
+          _fontManagerAssociation = _controller!.associateFontManager(fontManager);
+          _associatedFontManager = fontManager;
+        }),
+      );
+    }
+  }
+
+  void _clearFontManagerAssociation() {
+    _fontManagerAssociation?.dispose();
+    _fontManagerAssociation = null;
+    _associatedFontManager = null;
+  }
 
   void _onDocumentEvent(PdfDocumentEvent event) {
     if (event is PdfDocumentPageStatusChangedEvent) {
@@ -478,6 +598,7 @@ class _PdfViewerState extends State<PdfViewer>
               builder: (context, constraints) {
                 final isCopyTextEnabled = _document!.permissions?.allowsCopying != false;
                 final viewSize = Size(constraints.maxWidth, constraints.maxHeight);
+                final shouldBuildTextSemantics = _shouldBuildTextSemantics;
 
                 _updateLayout(viewSize);
 
@@ -488,73 +609,78 @@ class _PdfViewerState extends State<PdfViewer>
                   onPointerHover: (event) => _handlePointerEvent(event, event.localPosition, event.kind),
                   child: Stack(
                     children: [
-                      iv.InteractiveViewer(
-                        key: _interactiveViewerKey,
-                        transformationController: _txController,
-                        constrained: false,
-                        boundaryMargin: widget.params.scrollPhysics == null
-                            ? const EdgeInsets.all(double.infinity) // NOTE: boundaryMargin is handled manually
-                            : _adjustedBoundaryMargins,
-                        maxScale: widget.params.maxScale,
-                        minScale: minScale,
-                        panAxis: widget.params.panAxis,
-                        panEnabled: widget.params.panEnabled,
-                        scaleEnabled: widget.params.scaleEnabled,
-                        onInteractionEnd: _onInteractionEnd,
-                        onInteractionStart: _onInteractionStart,
-                        onInteractionUpdate: widget.params.onInteractionUpdate,
-                        interactionEndFrictionCoefficient: widget.params.interactionEndFrictionCoefficient,
-                        onWheelDelta: widget.params.scrollByMouseWheel != null ? _onWheelDelta : null,
-                        scrollPhysics: widget.params.scrollPhysics,
-                        scrollPhysicsScale: widget.params.scrollPhysicsScale,
-                        scrollPhysicsAutoAdjustBoundaries: false,
-                        // PDF pages
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapUp: (d) => _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.tap),
-                          onDoubleTapDown: (d) =>
-                              _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.doubleTap),
-                          onLongPressStart: (d) =>
-                              _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.longPress),
-                          onSecondaryTapUp: (d) =>
-                              _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.secondaryTap),
-                          child: !isTextSelectionEnabled
-                              // show PDF pages without text selection
-                              ? CustomPaint(
-                                  foregroundPainter: _CustomPainter.fromFunctions(_paintPages),
-                                  size: _layout!.documentSize,
-                                )
-                              // show PDF pages with text selection
-                              : MouseRegion(
-                                  cursor: SystemMouseCursors.text,
-                                  hitTestBehavior: HitTestBehavior.deferToChild,
-                                  child: GestureDetector(
-                                    onPanStart: enableSelectionHandles ? null : _onTextPanStart,
-                                    onPanUpdate: enableSelectionHandles ? null : _onTextPanUpdate,
-                                    onPanEnd: enableSelectionHandles ? null : _onTextPanEnd,
-                                    supportedDevices: {
-                                      // PointerDeviceKind.trackpad is intentionally not included here
-                                      PointerDeviceKind.mouse,
-                                      PointerDeviceKind.stylus,
-                                      PointerDeviceKind.touch,
-                                      PointerDeviceKind.invertedStylus,
-                                    },
-                                    child: CustomPaint(
-                                      painter: _CustomPainter.fromFunctions(
-                                        _paintPages,
-                                        hitTestFunction: _hitTestForTextSelection,
+                      ExcludeSemantics(
+                        excluding: shouldBuildTextSemantics,
+                        child: iv.InteractiveViewer(
+                          key: _interactiveViewerKey,
+                          transformationController: _txController,
+                          constrained: false,
+                          boundaryMargin: widget.params.scrollPhysics == null
+                              ? const EdgeInsets.all(double.infinity) // NOTE: boundaryMargin is handled manually
+                              : _adjustedBoundaryMargins,
+                          maxScale: _layoutMetrics.maxScale,
+                          minScale: _layoutMetrics.minScale,
+                          panAxis: widget.params.panAxis,
+                          panEnabled: widget.params.panEnabled,
+                          scaleEnabled: widget.params.scaleEnabled,
+                          onInteractionEnd: _onInteractionEnd,
+                          onInteractionStart: _onInteractionStart,
+                          onInteractionUpdate: widget.params.onInteractionUpdate,
+                          interactionEndFrictionCoefficient: widget.params.interactionEndFrictionCoefficient,
+                          onWheelDelta: widget.params.scrollByMouseWheel != null ? _onWheelDelta : null,
+                          onPointerScale: _onPointerScale,
+                          scrollPhysics: widget.params.scrollPhysics,
+                          scrollPhysicsScale: widget.params.scrollPhysicsScale,
+                          scrollPhysicsAutoAdjustBoundaries: false,
+                          // PDF pages
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapUp: (d) => _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.tap),
+                            onDoubleTapDown: (d) =>
+                                _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.doubleTap),
+                            onLongPressStart: (d) =>
+                                _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.longPress),
+                            onSecondaryTapUp: (d) =>
+                                _handleGeneralTap(d.globalPosition, PdfViewerGeneralTapType.secondaryTap),
+                            child: !isTextSelectionEnabled
+                                // show PDF pages without text selection
+                                ? CustomPaint(
+                                    foregroundPainter: _CustomPainter.fromFunctions(_paintPages),
+                                    size: _layout!.documentSize,
+                                  )
+                                // show PDF pages with text selection
+                                : MouseRegion(
+                                    cursor: SystemMouseCursors.text,
+                                    hitTestBehavior: HitTestBehavior.deferToChild,
+                                    child: GestureDetector(
+                                      onPanStart: enableSelectionHandles ? null : _onTextPanStart,
+                                      onPanUpdate: enableSelectionHandles ? null : _onTextPanUpdate,
+                                      onPanEnd: enableSelectionHandles ? null : _onTextPanEnd,
+                                      supportedDevices: {
+                                        // PointerDeviceKind.trackpad is intentionally not included here
+                                        PointerDeviceKind.mouse,
+                                        PointerDeviceKind.stylus,
+                                        PointerDeviceKind.touch,
+                                        PointerDeviceKind.invertedStylus,
+                                      },
+                                      child: CustomPaint(
+                                        painter: _CustomPainter.fromFunctions(
+                                          _paintPages,
+                                          hitTestFunction: _hitTestForTextSelection,
+                                        ),
+                                        size: _layout!.documentSize,
                                       ),
-                                      size: _layout!.documentSize,
                                     ),
                                   ),
-                                ),
+                          ),
                         ),
                       ),
+                      if (_initialized && shouldBuildTextSemantics) ..._buildPageSemanticsWidgets(context),
                       if (_initialized && _canvasLinkPainter.isLaidUnderPageOverlays)
-                        _canvasLinkPainter.linkHandlingOverlay(viewSize),
+                        ExcludeSemantics(child: _canvasLinkPainter.linkHandlingOverlay(viewSize)),
                       if (_initialized) ..._buildPageOverlayWidgets(context),
                       if (_initialized && _canvasLinkPainter.isLaidOverPageOverlays)
-                        _canvasLinkPainter.linkHandlingOverlay(viewSize),
+                        ExcludeSemantics(child: _canvasLinkPainter.linkHandlingOverlay(viewSize)),
                       if (_initialized && widget.params.viewerOverlayBuilder != null)
                         ...widget.params.viewerOverlayBuilder!(context, viewSize, _canvasLinkPainter._handleTapUp),
                       if (_initialized) ..._placeTextSelectionWidgets(context, viewSize, isCopyTextEnabled),
@@ -615,17 +741,30 @@ class _PdfViewerState extends State<PdfViewer>
   void _updateLayout(Size viewSize) {
     if (viewSize.height <= 0) return; // For fix blank pdf when restore window from minimize on Windows
     final currentPageNumber = _guessCurrentPageNumber();
+    final oldSnapshot = PdfViewerLayoutSnapshot(
+      viewSize: _viewSize ?? Size.zero,
+      layout: _layout,
+      minScale: _layoutMetrics.minScale,
+      coverScale: _layoutMetrics.coverScale,
+      alternativeFitScale: _layoutMetrics.alternativeFitScale,
+    );
     final oldVisibleRect = _initialized ? _visibleRect : Rect.zero;
-    final oldLayout = _layout;
-    final oldMinScale = _minScale;
     final oldSize = _viewSize;
     final isViewSizeChanged = oldSize != viewSize;
     _viewSize = viewSize;
     final isLayoutChanged = _relayoutPages();
 
-    _calcCoverFitScale();
+    _recalculateMetrics();
     _calcZoomStopTable();
-    _adjustBoundaryMargins(viewSize, max(_minScale, _currentZoom));
+    _adjustBoundaryMargins(viewSize, max(_layoutMetrics.minScale, _currentZoom));
+
+    final newSnapshot = PdfViewerLayoutSnapshot(
+      viewSize: viewSize,
+      layout: _layout,
+      minScale: _layoutMetrics.minScale,
+      coverScale: _layoutMetrics.coverScale,
+      alternativeFitScale: _layoutMetrics.alternativeFitScale,
+    );
 
     void callOnViewerSizeChanged() {
       if (isViewSizeChanged) {
@@ -635,98 +774,68 @@ class _PdfViewerState extends State<PdfViewer>
       }
     }
 
-    if (!_initialized && _layout != null && _coverScale != null) {
+    if (!_initialized && _layout != null) {
       _initialized = true;
-      Future.microtask(() async {
-        // forcibly calculate fit scale for the initial page
+      Future.microtask(() {
+        if (!mounted) {
+          return;
+        }
+
+        // Calculate initial page (using params or default)
+        // We set it here so internal state is consistent before delegate runs
         _pageNumber = _gotoTargetPageNumber = _calcInitialPageNumber();
-        _calcCoverFitScale();
+
+        // RECALCULATE for specific initial page
+        _recalculateMetrics();
         _calcZoomStopTable();
-        final zoom =
-            widget.params.calculateInitialZoom?.call(
-              _document!,
-              _controller!,
-              _alternativeFitScale ?? _coverScale!,
-              _coverScale!,
-            ) ??
-            _coverScale!;
-        await _setZoom(Offset.zero, zoom, duration: Duration.zero);
+
+        _sizeDelegate?.onLayoutInitialized(
+          state: newSnapshot,
+          initialPageNumber: _pageNumber!,
+          coverScale: _layoutMetrics.coverScale,
+          alternativeFitScale: _layoutMetrics.alternativeFitScale,
+          layout: _layout!,
+          document: _document!,
+        );
+
         if (_pageNumber! <= _layout!.pageLayouts.length) {
-          await _goToPage(pageNumber: _pageNumber!, duration: Duration.zero);
+          unawaited(_goToPage(pageNumber: _pageNumber!, duration: Duration.zero));
         }
-        if (mounted && _document != null && _controller != null) {
-          widget.params.onViewerReady?.call(_document!, _controller!);
+
+        final onViewerReady = widget.params.onViewerReady;
+        if (_document != null && _controller != null && onViewerReady != null) {
+          onViewerReady(_document!, _controller!);
         }
+
         callOnViewerSizeChanged();
       });
     } else if (isLayoutChanged || isViewSizeChanged) {
-      Future.microtask(() async {
-        if (mounted) {
-          // preserve the current zoom whilst respecting the new minScale
-          final zoomTo = _currentZoom < _minScale || _currentZoom == oldMinScale ? _minScale : _currentZoom;
-          if (isLayoutChanged) {
-            // if the layout changed, calculate the top-left position in the document
-            // before the layout change and go to that position in the new layout
+      Future.microtask(() {
+        if (!mounted) {
+          return;
+        }
 
-            if (oldLayout != null && currentPageNumber != null) {
-              // The top-left position of the screen (oldVisibleRect.topLeft) may be
-              // in the boundary margin, or a margin between pages, and it could be
-              // the current page or one of the neighboring pages
-              final hit = _getClosestPageHit(currentPageNumber, oldLayout, oldVisibleRect);
-              final pageNumber = hit?.page.pageNumber ?? currentPageNumber;
+        _sizeDelegate?.onLayoutUpdate(
+          oldState: oldSnapshot,
+          newState: newSnapshot,
+          currentZoom: _currentZoom,
+          oldVisibleRect: oldVisibleRect,
+          anchorPageNumber: currentPageNumber,
+          isLayoutChanged: isLayoutChanged,
+          isViewSizeChanged: isViewSizeChanged,
+        );
 
-              // Compute relative position within the old pageRect
-              final oldPageRect = oldLayout.pageLayouts[pageNumber - 1];
-              final newPageRect = _layout!.pageLayouts[pageNumber - 1];
-              final oldOffset = oldVisibleRect.topLeft - oldPageRect.topLeft;
-              final fracX = oldOffset.dx / oldPageRect.width;
-              final fracY = oldOffset.dy / oldPageRect.height;
+        if (!mounted) {
+          return;
+        }
 
-              // Map into new layoutRect
-              final newOffset = Offset(
-                newPageRect.left + fracX * newPageRect.width,
-                newPageRect.top + fracY * newPageRect.height,
-              );
-
-              // preserve the position after a layout change
-              await _goToPosition(documentOffset: newOffset, zoom: zoomTo);
-            }
-          } else {
-            if (zoomTo != _currentZoom) {
-              // layout hasn't changed, but size and zoom has
-              final zoomChange = zoomTo / _currentZoom;
-              final pivot = vec.Vector3(_txController.value.x, _txController.value.y, 0);
-
-              final pivotScale = Matrix4.identity()
-                ..translateByVector3(pivot)
-                ..scaleByDouble(zoomChange, zoomChange, zoomChange, 1)
-                ..translateByVector3(-pivot / zoomChange);
-
-              final Matrix4 zoomPivoted = pivotScale * _txController.value;
-              _adjustBoundaryMargins(viewSize, zoomTo);
-              _clampToNearestBoundary(zoomPivoted, viewSize: viewSize);
-            } else {
-              // size changes (e.g. rotation) can still cause out-of-bounds matrices
-              // so clamp here
-              _clampToNearestBoundary(_txController.value, viewSize: viewSize);
-            }
-            callOnViewerSizeChanged();
-          }
+        if (isViewSizeChanged) {
+          callOnViewerSizeChanged();
         }
       });
     } else if (currentPageNumber != null && _pageNumber != currentPageNumber) {
       _setCurrentPageNumber(currentPageNumber);
     }
-  }
-
-  /// Stop InteractiveViewer animations and apply boundary clamping
-  void _clampToNearestBoundary(Matrix4 candidate, {required Size viewSize}) {
-    if (_isInteractionGoingOn) return;
-
-    _stopInteractiveViewerAnimation();
-
-    // Apply the clamped matrix
-    _txController.value = _calcMatrixForClampedToNearestBoundary(candidate, viewSize: viewSize);
   }
 
   /// Get the state of the internal [iv.InteractiveViewer].
@@ -740,7 +849,12 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   int _calcInitialPageNumber() {
-    return widget.params.calculateInitialPageNumber?.call(_document!, _controller!) ?? widget.initialPageNumber;
+    int? pageNumber;
+    final calculateInitialPageNumber = widget.params.calculateInitialPageNumber;
+    if (calculateInitialPageNumber != null) {
+      pageNumber = calculateInitialPageNumber(_document!, _controller!);
+    }
+    return pageNumber ?? widget.initialPageNumber;
   }
 
   PdfPageHitTestResult? _getClosestPageHit(int currentPageNumber, PdfPageLayout oldLayout, ui.Rect oldVisibleRect) {
@@ -820,6 +934,7 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   void _onInteractionStart(ScaleStartDetails details) {
+    _interactionDelegate?.stop(); // Stop physics when user touches
     _startInteraction();
     _requestFocus();
     widget.params.onInteractionStart?.call(details);
@@ -1045,78 +1160,20 @@ class _PdfViewerState extends State<PdfViewer>
     return true;
   }
 
-  void _calcCoverFitScale() {
-    final params = widget.params;
-    final bmh = params.boundaryMargin?.horizontal == double.infinity ? 0 : params.boundaryMargin?.horizontal ?? 0;
-    final bmv = params.boundaryMargin?.vertical == double.infinity ? 0 : params.boundaryMargin?.vertical ?? 0;
-
-    if (_viewSize != null) {
-      final s1 = _viewSize!.width / (_layout!.documentSize.width + bmh);
-      final s2 = _viewSize!.height / (_layout!.documentSize.height + bmv);
-      _coverScale = max(s1, s2);
-    }
+  void _recalculateMetrics() {
     final pageNumber = _pageNumber ?? _gotoTargetPageNumber;
-    if (pageNumber != null && pageNumber >= 1 && pageNumber <= _layout!.pageLayouts.length) {
-      final rect = _layout!.pageLayouts[pageNumber - 1];
-      final m2 = params.margin * 2;
-      _alternativeFitScale = min(
-        (_viewSize!.width) / (rect.width + bmh + m2),
-        (_viewSize!.height) / (rect.height + bmv + m2),
-      );
-      if (_alternativeFitScale! <= 0) {
-        _alternativeFitScale = null;
-      }
-    } else {
-      _alternativeFitScale = null;
-    }
-    if (_coverScale == null) {
-      _minScale = _defaultMinScale;
-      return;
-    }
-    _minScale = !widget.params.useAlternativeFitScaleAsMinScale
-        ? widget.params.minScale
-        : _alternativeFitScale == null
-        ? _coverScale!
-        : min(_coverScale!, _alternativeFitScale!);
+
+    _layoutMetrics = _sizeDelegate!.calculateMetrics(
+      viewSize: _viewSize ?? Size.zero,
+      layout: _layout,
+      pageNumber: pageNumber,
+      pageMargin: widget.params.margin,
+      boundaryMargin: widget.params.boundaryMargin,
+    );
   }
 
   void _calcZoomStopTable() {
-    _zoomStops.clear();
-    double z;
-    if (_alternativeFitScale != null && !_areZoomsAlmostIdentical(_alternativeFitScale!, _coverScale!)) {
-      if (_alternativeFitScale! < _coverScale!) {
-        _zoomStops.add(_alternativeFitScale!);
-        z = _coverScale!;
-      } else {
-        _zoomStops.add(_coverScale!);
-        z = _alternativeFitScale!;
-      }
-    } else {
-      z = _coverScale!;
-    }
-    // in some case, z may be 0 and it causes infinite loop.
-    if (z < 1 / 128) {
-      _zoomStops.add(1.0);
-      return;
-    }
-    while (z < widget.params.maxScale) {
-      _zoomStops.add(z);
-      z *= 2;
-    }
-    if (!_areZoomsAlmostIdentical(z, widget.params.maxScale)) {
-      _zoomStops.add(widget.params.maxScale);
-    }
-
-    if (!widget.params.useAlternativeFitScaleAsMinScale) {
-      z = _zoomStops.first;
-      while (z > widget.params.minScale) {
-        z /= 2;
-        _zoomStops.insert(0, z);
-      }
-      if (!_areZoomsAlmostIdentical(z, widget.params.minScale)) {
-        _zoomStops.insert(0, widget.params.minScale);
-      }
-    }
+    _zoomStops = _zoomStepsDelegate!.generateZoomStops(_layoutMetrics);
   }
 
   double _findNextZoomStop(double zoom, {required bool zoomUp, bool loop = true}) {
@@ -1227,6 +1284,134 @@ class _PdfViewerState extends State<PdfViewer>
     return [...linkWidgets, ...overlayWidgets];
   }
 
+  List<Widget> _buildPageSemanticsWidgets(BuildContext context) {
+    final renderBox = context.findRenderObject();
+    if (renderBox is! RenderBox) return [];
+
+    final widgets = <Widget>[];
+    final targetRect = _visibleRect;
+
+    for (var i = 0; i < _document!.pages.length; i++) {
+      final pageRect = _layout!.pageLayouts[i];
+      final intersection = pageRect.intersect(targetRect);
+      if (intersection.isEmpty) continue;
+
+      final page = _document!.pages[i];
+      final pageRectExternal = _documentToRenderBox(pageRect, renderBox);
+      if (pageRectExternal == null || pageRectExternal.isEmpty) continue;
+
+      final children = <Widget>[];
+      final text = _getCachedTextOrDelayLoadText(page.pageNumber);
+      if (text != null && text.fullText.trim().isNotEmpty && text.charRects.isNotEmpty) {
+        var lineIndex = 0;
+        for (final line in _enumerateTextSemanticsLines(text)) {
+          final lineRect = line.bounds.toRectInDocument(page: page, pageRect: pageRect);
+          final rectExternal = _documentToRenderBox(lineRect, renderBox);
+          if (rectExternal == null || rectExternal.isEmpty) continue;
+
+          children.add(
+            Positioned.fromRect(
+              key: Key('#__pageTextSemantics__:${page.pageNumber}:$lineIndex'),
+              rect: rectExternal.translate(-pageRectExternal.left, -pageRectExternal.top),
+              child: Focus(
+                canRequestFocus: false,
+                child: Semantics(
+                  focusable: true,
+                  label: line.text,
+                  readOnly: true,
+                  sortKey: OrdinalSortKey(lineIndex.toDouble()),
+                  textDirection: _toFlutterTextDirection(line.direction),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+          );
+          lineIndex++;
+        }
+      }
+
+      final linkHandlerParams = widget.params.linkHandlerParams;
+      if (linkHandlerParams != null) {
+        final links = _canvasLinkPainter._ensureLinksLoaded(page);
+        if (links != null && links.isNotEmpty) {
+          var linkIndex = 0;
+          for (final link in links) {
+            for (final rect in link.rects) {
+              final linkRect = rect.toRectInDocument(page: page, pageRect: pageRect);
+              final rectExternal = _documentToRenderBox(linkRect, renderBox);
+              if (rectExternal == null || rectExternal.isEmpty) continue;
+
+              children.add(
+                Positioned.fromRect(
+                  key: Key('#__pageLinkSemantics__:${page.pageNumber}:$linkIndex'),
+                  rect: rectExternal.translate(-pageRectExternal.left, -pageRectExternal.top),
+                  child: Semantics(
+                    link: true,
+                    linkUrl: link.url,
+                    onTap: () => linkHandlerParams.onLinkTap(link),
+                    sortKey: OrdinalSortKey(500000.0 + linkIndex),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              );
+              linkIndex++;
+            }
+          }
+        }
+      }
+
+      if (children.isEmpty) continue;
+
+      widgets.add(
+        Positioned.fromRect(
+          key: Key('#__pageSemantics__:${page.pageNumber}'),
+          rect: pageRectExternal,
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            label: 'Page ${page.pageNumber}',
+            sortKey: OrdinalSortKey(page.pageNumber.toDouble()),
+            child: Stack(fit: StackFit.expand, children: children),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  Iterable<({String text, PdfRect bounds, PdfTextDirection direction})> _enumerateTextSemanticsLines(
+    PdfPageText pageText,
+  ) sync* {
+    var lineStart = 0;
+    for (var i = 0; i <= pageText.fullText.length; i++) {
+      if (i < pageText.fullText.length && pageText.fullText.codeUnitAt(i) != 0x0a) continue;
+
+      final lineEnd = i;
+      if (lineStart < lineEnd) {
+        final lineText = pageText.fullText.substring(lineStart, lineEnd).trim();
+        if (lineText.isNotEmpty) {
+          yield (
+            text: lineText,
+            bounds: pageText.charRects.boundingRect(start: lineStart, end: lineEnd),
+            direction: pageText.getFragmentForTextIndex(lineStart)?.direction ?? PdfTextDirection.ltr,
+          );
+        }
+      }
+      lineStart = i + 1;
+    }
+  }
+
+  TextDirection _toFlutterTextDirection(PdfTextDirection direction) {
+    return switch (direction) {
+      PdfTextDirection.rtl => TextDirection.rtl,
+      PdfTextDirection.ltr || PdfTextDirection.vrtl || PdfTextDirection.unknown => TextDirection.ltr,
+    };
+  }
+
+  bool get _shouldBuildTextSemantics =>
+      widget.params.forceEnableTextSemantics || SemanticsBinding.instance.semanticsEnabled;
+
   void _onSelectionChange() {
     _textSelectionChangedDebounceTimer?.cancel();
     _textSelectionChangedDebounceTimer = Timer(const Duration(milliseconds: 300), () {
@@ -1310,7 +1495,7 @@ class _PdfViewerState extends State<PdfViewer>
         context,
         page,
         _controller!,
-        widget.params.onePassRenderingScaleThreshold,
+        _sizeDelegate!.onePassRenderingScaleThreshold,
       );
 
       if (dropShadowPaint != null) {
@@ -1613,26 +1798,54 @@ class _PdfViewerState extends State<PdfViewer>
         // NOTE: I believe that either only dx or dy is set, but I don't know which one is guaranteed to be set.
         // So, I just add both values.
         var zoomFactor = -(event.scrollDelta.dx + event.scrollDelta.dy) / 120.0;
-        final newZoom = (_currentZoom * (pow(1.2, zoomFactor))).clamp(widget.params.minScale, widget.params.maxScale);
-        if (_areZoomsAlmostIdentical(newZoom, _currentZoom)) return;
+        final rawScaleFactor = pow(1.2, zoomFactor).toDouble();
+
+        final dampening = widget.params.scaleByPointerScale;
+        final scaleFactor = (rawScaleFactor - 1.0) * dampening + 1.0;
+
         // NOTE: _onWheelDelta may be called from other widget's context and localPosition may be incorrect.
-        _controller!.zoomOnLocalPosition(
-          localPosition: _controller!.globalToLocal(event.position)!,
-          newZoom: newZoom,
-          duration: Duration.zero,
-        );
+        _interactionDelegate?.zoom(scaleFactor, _controller!.globalToLocal(event.position)!, _layoutMetrics);
         return;
       }
 
-      final dx = -event.scrollDelta.dx * widget.params.scrollByMouseWheel! / _currentZoom;
-      final dy = -event.scrollDelta.dy * widget.params.scrollByMouseWheel! / _currentZoom;
-      final m = _txController.value.clone();
-      if (widget.params.scrollHorizontallyByMouseWheel) {
-        m.translateByDouble(dy, dx, 0, 1);
-      } else {
-        m.translateByDouble(dx, dy, 0, 1);
+      final scrollMultiplier = widget.params.scrollByMouseWheel ?? 1.0;
+
+      var rawDx = -event.scrollDelta.dx;
+      var rawDy = -event.scrollDelta.dy;
+
+      // Shift + Vertical Scroll = Horizontal Scroll
+      // Standard behavior for desktop applications
+      if (HardwareKeyboard.instance.isShiftPressed && rawDy != 0 && rawDx == 0) {
+        rawDx = rawDy;
+        rawDy = 0;
       }
-      _txController.value = _makeMatrixInSafeRange(m, forceClamp: true);
+
+      final dx = rawDx * scrollMultiplier;
+      final dy = rawDy * scrollMultiplier;
+
+      final Offset delta;
+      // If the parameter forces horizontal scrolling, we swap the axes.
+      // Note: If user held SHIFT (already swapped to horizontal), this swap
+      // effectively turns it back to vertical, which is generally acceptable
+      // (axis inversion) if the user explicitly configured this param.
+      if (widget.params.scrollHorizontallyByMouseWheel) {
+        delta = Offset(dy, dx);
+      } else {
+        delta = Offset(dx, dy);
+      }
+
+      _interactionDelegate?.pan(delta, _layoutMetrics);
+    } finally {
+      _stopInteraction();
+    }
+  }
+
+  void _onPointerScale(PointerScaleEvent event) {
+    _startInteraction();
+    try {
+      final dampening = widget.params.scaleByPointerScale;
+      final scaleFactor = (event.scale - 1.0) * dampening + 1.0;
+      _interactionDelegate?.zoom(scaleFactor, event.localPosition, _layoutMetrics);
     } finally {
       _stopInteraction();
     }
@@ -1661,9 +1874,6 @@ class _PdfViewerState extends State<PdfViewer>
       ),
     );
   }
-
-  /// The minimum zoom ratio allowed.
-  double get minScale => _minScale;
 
   Matrix4 _calcMatrixForRect(Rect rect, {double? zoomMax, double? margin}) {
     margin ??= 0;
@@ -2053,7 +2263,12 @@ class _PdfViewerState extends State<PdfViewer>
   }
 
   FocusNode? _getFocusNode() {
-    return _contextForFocusNode != null ? Focus.maybeOf(_contextForFocusNode!) : null;
+    final ctx = _contextForFocusNode;
+    // The context may be deactivated when the viewer is disposed mid-gesture
+    // (e.g. onLinkTap navigates to another screen before the tap finishes).
+    // Touching a deactivated element's ancestor inherited widgets asserts.
+    if (ctx == null || !ctx.mounted) return null;
+    return Focus.maybeOf(ctx);
   }
 
   void _requestFocus() {
@@ -2292,7 +2507,7 @@ class _PdfViewerState extends State<PdfViewer>
         null,
         _contextMenuFor,
       );
-      return [if (contextMenu != null) contextMenu];
+      return [?contextMenu];
     }
 
     final renderBox = _renderBox;
@@ -2709,8 +2924,8 @@ class _PdfViewerState extends State<PdfViewer>
             ),
           ),
         ),
-      if (magnifier != null) magnifier,
-      if (contextMenu != null) contextMenu,
+      ?magnifier,
+      ?contextMenu,
     ];
   }
 
@@ -2950,24 +3165,33 @@ class _PdfViewerState extends State<PdfViewer>
 
   void _onSelectionHandlePanStart(_TextSelectionPart handle, DragStartDetails details) {
     if (_isInteractionGoingOn) return;
+    // A concurrent _clearTextSelections() or a tap outside the document can
+    // null out the anchors or make globalPosition unmappable between the time
+    // the gesture arena resolves and onPanStart fires. Bail out instead of
+    // force-unwrapping. See #602.
+    final position = _globalToDocument(details.globalPosition);
+    if (position == null) return;
     _selPartMoving = handle;
     _isSelectingAllText = false;
-    final position = _globalToDocument(details.globalPosition);
     final anchor = Offset(_txController.value.x, _txController.value.y);
     if (_selPartMoving == _TextSelectionPart.a) {
-      _textSelectAnchor = anchor + _textSelA!.rect.topLeft - position!;
-      final a = _findTextAndIndexForPoint(_textSelA!.rect.center);
+      final textSelA = _textSelA;
+      if (textSelA == null) return;
+      _textSelectAnchor = anchor + textSelA.rect.topLeft - position;
+      final a = _findTextAndIndexForPoint(textSelA.rect.center);
       if (a == null) return;
       _selA = a;
       // Notify drag start callback
-      widget.params.textSelectionParams?.onSelectionHandlePanStart?.call(_textSelA!);
+      widget.params.textSelectionParams?.onSelectionHandlePanStart?.call(textSelA);
     } else if (_selPartMoving == _TextSelectionPart.b) {
-      _textSelectAnchor = anchor + _textSelB!.rect.bottomRight - position!;
-      final b = _findTextAndIndexForPoint(_textSelB!.rect.center);
+      final textSelB = _textSelB;
+      if (textSelB == null) return;
+      _textSelectAnchor = anchor + textSelB.rect.bottomRight - position;
+      final b = _findTextAndIndexForPoint(textSelB.rect.center);
       if (b == null) return;
       _selB = b;
       // Notify drag start callback
-      widget.params.textSelectionParams?.onSelectionHandlePanStart?.call(_textSelB!);
+      widget.params.textSelectionParams?.onSelectionHandlePanStart?.call(textSelB);
     } else {
       return;
     }
@@ -3719,13 +3943,16 @@ class PdfViewerController extends ValueListenable<Matrix4> {
   Size get viewSize => _state._viewSize!;
 
   /// The zoom ratio that fits the page's smaller side (either horizontal or vertical) to the view port.
-  double get coverScale => _state._coverScale!;
+  double get coverScale => _state._layoutMetrics.coverScale;
 
   /// The zoom ratio that fits whole the page to the view port.
-  double? get alternativeFitScale => _state._alternativeFitScale;
+  double? get alternativeFitScale => _state._layoutMetrics.alternativeFitScale;
 
   /// The minimum zoom ratio allowed.
-  double get minScale => _state.minScale;
+  double get minScale => _state._layoutMetrics.minScale;
+
+  /// The maximum zoom ratio allowed.
+  double get maxScale => _state._layoutMetrics.maxScale;
 
   /// The area of the document layout which is visible on the view port.
   Rect get visibleRect => _state._visibleRect;
@@ -3838,6 +4065,14 @@ class PdfViewerController extends ValueListenable<Matrix4> {
     PdfPageAnchor? anchor,
     Duration duration = const Duration(milliseconds: 200),
   }) => _state._goToRectInsidePage(pageNumber: pageNumber, rect: rect, anchor: anchor, duration: duration);
+
+  /// Scrolls/zooms so that the specified PDF document coordinate appears at
+  /// the top-left corner of the viewport.
+  Future<void> goToPosition({
+    required Offset documentOffset,
+    double? zoom,
+    Duration duration = const Duration(milliseconds: 0),
+  }) => _state._goToPosition(documentOffset: documentOffset, zoom: zoom, duration: duration);
 
   /// Calculate the rectangle for the specified area inside the page.
   ///
@@ -4113,6 +4348,70 @@ class PdfViewerController extends ValueListenable<Matrix4> {
 
   /// Force redraw all the page images.
   void forceRepaintAllPageImages() => _state.forceRepaintAllPageImages();
+
+  /// Stop the inertia animation of the interactive viewer.
+  ///
+  /// This is useful when you want to manually update the matrix without
+  /// fighting against the active inertia animation.
+  void stopInteractiveViewerAnimation() => _state._stopInteractiveViewerAnimation();
+
+  /// Calculate the matrix that clamps the given [matrix] to the nearest boundary.
+  ///
+  /// This ensures that the content is visible within the view port.
+  /// This is used by the default resizing logic to prevent the content from
+  /// being hidden when the view size is reduced.
+  Matrix4 calcMatrixForClampedToNearestBoundary(Matrix4 matrix, {required Size viewSize}) =>
+      _state._calcMatrixForClampedToNearestBoundary(matrix, viewSize: viewSize);
+
+  /// Find the closest page hit for the given parameters.
+  ///
+  /// This is used to determine the anchor position when the layout changes.
+  PdfPageHitTestResult? getClosestPageHit(int currentPageNumber, PdfPageLayout oldLayout, Rect oldVisibleRect) =>
+      _state._getClosestPageHit(currentPageNumber, oldLayout, oldVisibleRect);
+
+  /// Associate a [PdfFontManager] to the [PdfViewer].
+  ///
+  /// The [PdfViewer] listens to the missing font events from the document and uses the [fontManager] to load
+  /// the missing fonts.
+  ///
+  /// If [verbose] is true, the function prints the missing fonts and the result of loading the fonts to the debug
+  /// console. [onProgress] is called when [fontManager] reports byte progress while loading a font.
+  /// The function returns a [PdfFontManagerAssociation] which can be used to dispose the association
+  /// when it's no longer needed.
+  ///
+  /// Please note that the association is not automatically disposed when the [PdfViewer] is disposed, so you need
+  /// to manually dispose it by calling [PdfFontManagerAssociation.dispose].
+  PdfFontManagerAssociation associateFontManager(
+    PdfFontManager fontManager, {
+    PdfFontLoadProgressCallback? onProgress,
+    bool verbose = true,
+  }) {
+    return document.associateFontManager(
+      fontManager,
+      onLoadComplete: (result) async {
+        if (verbose) {
+          for (final font in result.loaded) {
+            debugPrint(
+              'Loaded font "${font.resolvedFace}" for "${font.targetFace}" '
+              'from ${font.source} (${font.length} bytes)',
+            );
+          }
+          for (final failure in result.failed) {
+            debugPrint('Failed to load font for ${failure.query}: ${failure.error}');
+          }
+        }
+        if (result.hasLoadedFonts) {
+          // Because the loading operation is asynchronous, the document might be already disposed when the font
+          // loading is completed; in that case, we should not try to reload the document.
+          final listenable = documentRef.resolveListenable();
+          if (listenable.document != null) {
+            await listenable.load(forceReload: true);
+          }
+        }
+      },
+      onProgress: onProgress,
+    );
+  }
 }
 
 /// [PdfViewerController.calcFitZoomMatrices] returns the list of this class.

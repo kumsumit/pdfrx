@@ -1,3 +1,39 @@
+# 2.3.3
+
+- Updated to `pdfrx_engine` 0.4.2 and `pdfium_flutter` 0.2.1.
+- Fixed PDFium loading in Flutter tests on macOS ([#640](https://github.com/espresso3389/pdfrx/issues/640)).
+
+# 2.3.2
+
+- Updated to `pdfrx_engine` 0.4.1.
+- [PdfViewer](https://pub.dev/documentation/pdfrx/latest/pdfrx/PdfViewer-class.html) now supports PdfFontManager to natively support platform's font loading/additional font downloading.
+
+# 2.3.1
+
+- WASM backend now supports `preferRangeAccess` ([#616](https://github.com/espresso3389/pdfrx/issues/616)).
+- Updated PDFium WASM to chromium/7811.
+
+# 2.3.0
+
+- Updated to `pdfrx_engine` 0.4.0 and `pdfium_flutter` 0.2.0.
+- Updated native PDFium binaries to chromium/7811.
+- Improved native PDFium packaging:
+  - Android, Linux, and Windows use Dart native assets.
+  - iOS and macOS use the PDFium XCFramework without bundling a duplicate `libpdfium.dylib`.
+  - Flutter Web and other non-code-asset builds skip native PDFium link handling correctly.
+- NEW: Pluggable scroll/zoom interaction architecture ([#581](https://github.com/espresso3389/pdfrx/pull/581))
+  - `PdfViewerScrollInteractionDelegateProviderInstant` (default) - instant updates (legacy behavior)
+  - `PdfViewerScrollInteractionDelegateProviderPhysics` - smooth, physics-based animations for mouse wheel and trackpad
+  - New parameter `scaleByPointerScale` to control trackpad pinch/Ctrl+scroll sensitivity
+  - Shift+scroll now triggers horizontal scrolling (standard desktop behavior)
+- NEW: Pluggable sizing/layout architecture ([#582](https://github.com/espresso3389/pdfrx/pull/582))
+  - `PdfViewerSizeDelegateProviderLegacy` (default) - maintains existing behavior
+  - `PdfViewerSizeDelegateProviderSmart` - responsive resizing with content centering and adaptive scaling
+  - `PdfViewerZoomStepsDelegate` for customizable double-tap zoom snap points
+- DEPRECATED: `maxScale`, `minScale`, `useAlternativeFitScaleAsMinScale`, `onePassRenderingScaleThreshold`, and `calculateInitialZoom` parameters in `PdfViewerParams` - use `sizeDelegateProvider` instead
+- NEW: `PdfViewerController.maxScale` getter
+- NEW: `PdfViewerController.goToPosition()` method
+
 # 2.2.24
 
 - Updated to pdfrx_engine 0.3.9
@@ -33,7 +69,7 @@
 - FIXED: Trackpad and mouse wheel boundary issues on Web ([#547](https://github.com/espresso3389/pdfrx/issues/547), [#548](https://github.com/espresso3389/pdfrx/pull/548))
 - FIXED: `_setZoom` now properly sets `boundaryMargins`
 - NEW: Ctrl+wheel zoom logic can be enabled on Web ([#538](https://github.com/espresso3389/pdfrx/issues/538))
-- NEW: [`PdfDateTime`](https://pub.dev/documentation/pdfrx_engine/latest/pdfrx_engine/PdfDateTime.html) extension type for PDF date string parsing
+- NEW: [`PdfDateTime`](https://pub.dev/documentation/pdfrx_engine/latest/pdfrx_engine/PdfDateTime-extension-type.html) extension type for PDF date string parsing
 - NEW: [`PdfAnnotation`](https://pub.dev/documentation/pdfrx_engine/latest/pdfrx_engine/PdfAnnotation-class.html) class for PDF annotation metadata extraction ([#546](https://github.com/espresso3389/pdfrx/pull/546))
 
 # 2.2.16

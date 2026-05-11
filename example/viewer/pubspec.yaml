@@ -4,6 +4,7 @@ publish_to: 'none'
 
 environment:
   sdk: ^3.9.2
+resolution: workspace
 
 dependencies:
   flutter:
@@ -12,7 +13,7 @@ dependencies:
     sdk: flutter
 
   pdfrx:
-    git: https://github.com/kumsumit/pdfrx.git
+    path: ../../
 
   cupertino_icons: ^1.0.8
   rxdart: ^0.28.0

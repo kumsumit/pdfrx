@@ -5,6 +5,7 @@ version: 1.0.0+1
 
 environment:
   sdk: ^3.9.2
+resolution: workspace
 
 dependencies:
   flutter:
@@ -15,7 +16,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   pdfrx:
-    git: https://github.com/kumsumit/pdfrx.git
+    path: ../../
 
   file_selector: ^1.0.3
   share_plus: ^12.0.1
